@@ -14,7 +14,7 @@ class Conversation extends Model
         'last_message_id'
     ];
 
-    public function lastmressage()
+    public function lastmessage()
     {
         return $this->belongsTo(Message::class, 'last_message_id');
     }
