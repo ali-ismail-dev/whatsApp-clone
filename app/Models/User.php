@@ -90,18 +90,38 @@ class User extends Authenticatable
     }
 
     public function toConversationArray()
-    {
-        return [
-            'is_user' => true,
-            'id' => $this->id,
-            'name' => $this->name,
-            'is_group' => false,
-            'is_admin' => (bool) $this->is_admin,
-            'avatar' => $this->avatar,
-            'updated_at' => $this->updated_at,
-            'created_at' => $this->created_at,
-            'last_message' => $this->last_message,
-            'last_message_date' => $this->last_message_date,
+{
+    // Determine the content string for the last message
+    $lastMessageContent = $this->last_message;
+    // Determine the created_at string for the last message
+    $lastMessageDate = $this->last_message_date;
+
+    // Create the nested object structure required for sorting/frontend rendering
+    $lastMessageObject = null;
+    if ($lastMessageContent && $lastMessageDate) {
+        $lastMessageObject = [
+            'message' => $lastMessageContent,
+            'created_at' => $lastMessageDate,
         ];
     }
+    
+    return [
+        'is_user' => true,
+        'id' => $this->id,
+        'name' => $this->name,
+        'is_group' => false,
+        'is_admin' => (bool) $this->is_admin,
+        'avatar' => $this->avatar,
+        'updated_at' => $this->updated_at,
+        'created_at' => $this->created_at,
+        
+        // --- FIX IS HERE ---
+        // Pass the full object required by the sort function: last_message.created_at
+        'last_message' => $lastMessageObject, 
+        
+        // 'last_message_date' is no longer needed as a flat property, as it's now nested.
+        // You can keep it if other parts of your app use it, but for conversation sorting, it's redundant.
+        'last_message_date' => $this->last_message_date, 
+    ];
+}
 }

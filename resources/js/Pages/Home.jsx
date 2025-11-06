@@ -4,8 +4,7 @@ import { ChatBubbleLeftRightIcon } from "@heroicons/react/24/outline";
 import { useEffect, useRef, useState } from "react";
 import ConversationHeader from "@/Components/App/ConversationHeader";
 import MessageItem from "@/Components/App/MessageItem";
-
-
+import MessageInput from "@/Components/App/MessageInput";
 
 function Home({ messages = null, selectedConversation = null }) {
     const [messagesList, setMessagesList] = useState([]);
@@ -71,7 +70,7 @@ function Home({ messages = null, selectedConversation = null }) {
                                 }
 
                     </div>
-                    {/* <MessageInput conversation = {selectedConversation} /> */}
+                    <MessageInput conversation = {selectedConversation} />
                 </>
 
             )}

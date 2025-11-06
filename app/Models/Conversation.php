@@ -29,18 +29,34 @@ class Conversation extends Model
         return $this->belongsTo(User::class, 'user_id2');
     }
 
-    public static function getConversationsForSidebar(User $exceptUser)
-    {
-        $user = User::getUsersExceptUser($exceptUser);
-        $groups = Group::getGroupsForUser($exceptUser);
-        return $user->map(function (User $user) use ($exceptUser) {
-            return $user->toConversationArray();
-        })->concat(
-            $groups->map(function (Group $group) use ($exceptUser) {
-                return $group->toConversationArray($exceptUser);
-            })
-        )->sortByDesc('last_message.created_at')->values()->all();
-    }
+  public static function getConversationsForSidebar(User $exceptUser)
+{
+    $userConversations = User::getUsersExceptUser($exceptUser)->map(function (User $user) {
+        return $user->toConversationArray();
+    });
+
+    $groupConversations = Group::getGroupsForUser($exceptUser)->map(function (Group $group) use ($exceptUser) {
+        return $group->toConversationArray($exceptUser);
+    });
+
+    // Combine the collections
+    $allConversations = $userConversations->concat($groupConversations);
+
+    // --- FIX: Use a custom callback for safe sorting ---
+    return $allConversations->sort(function ($a, $b) {
+        // Safely retrieve the timestamp, defaulting to 0 if the property is missing or null
+        $timeA = data_get($a, 'last_message.created_at', 0);
+        $timeB = data_get($b, 'last_message.created_at', 0);
+
+        // Convert timestamps to comparable format (or simply rely on string comparison if they are ISO strings)
+        $timestampA = $timeA ? strtotime($timeA) : 0;
+        $timestampB = $timeB ? strtotime($timeB) : 0;
+        
+        // Sort descending (b then a)
+        return $timestampB <=> $timestampA;
+    })->values()->all();
+    // ----------------------------------------------------
+}
 
     public static function updateConversationWithMessage($userId1, $userId2, $message)
     {

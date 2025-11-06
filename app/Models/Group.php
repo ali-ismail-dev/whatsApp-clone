@@ -42,22 +42,38 @@ class Group extends Model
     }
 
     public function toConversationArray(User $exceptUser)
-    {
-        return [
-            'id' => $this->id,
-            'is_group' => true,
-            'name' => $this->name,
-            'description' => $this->description,
-            'avatar' => null,
-            'is_user' => false,
-            'owner_id' => $this->owner_id,
-            'users' => $this->users()->where('id', '!=', $exceptUser->id)->get(),
-            'user_ids' => $this->users()->pluck('id')->toArray(),
-            'last_message' => $this->last_message,
-            'last_message_date' => $this->last_message_date,
-            'is_online' => null,
+{
+    // Determine the content string for the last message
+    $lastMessageContent = $this->last_message;
+    // Determine the created_at string for the last message
+    $lastMessageDate = $this->last_message_date;
+    
+    // Create the nested object structure required for sorting/frontend rendering
+    $lastMessageObject = null;
+    if ($lastMessageContent && $lastMessageDate) {
+        $lastMessageObject = [
+            'message' => $lastMessageContent,
+            'created_at' => $lastMessageDate,
         ];
     }
+
+    return [
+        'id' => $this->id,
+        'is_group' => true,
+        'name' => $this->name,
+        // ... other properties ...
+        'is_user' => false,
+        'owner_id' => $this->owner_id,
+        'users' => $this->users()->where('users.id', '!=', $exceptUser->id)->get(),
+        'user_ids' => $this->users()->pluck('users.id')->toArray(),        // --- FIX IS HERE ---
+        // Pass the full object required by the sort function: last_message.created_at
+        'last_message' => $lastMessageObject, 
+        
+        // Remove 'last_message_date' as it's now nested inside 'last_message'
+        // 'last_message_date' => $this->last_message_date, // <--- DELETE OR COMMENT OUT
+        'is_online' => null,
+    ];
+}
 
     public static function updateGroupWithMessage($groupId, $message)
     {
