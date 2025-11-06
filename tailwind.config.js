@@ -17,7 +17,7 @@ export default {
                 sans: ['Figtree', ...defaultTheme.fontFamily.sans],
             },
             screens: {
-                'xsm': '630px'
+                'xsm': '640px'
             }
         },
     },
@@ -25,14 +25,7 @@ export default {
     plugins: [forms , require("daisyui")],
 
     daisyui: {
-        themes: true,
-        darkTheme: "dark",
-        base: true,
-        styled: true,
-        utils: true,
-        logs: true,
-        prefix: "",
-        themeRoot: ":root",
+        themes: ['dark'],
     },
 
 };

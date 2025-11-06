@@ -8,9 +8,17 @@ import MessageItem from "@/Components/App/MessageItem";
 
 
 function Home({ messages = null, selectedConversation = null }) {
-    console.log(messages);
     const [messagesList, setMessagesList] = useState([]);
     const messagesCtrRef = useRef(null);
+
+    useEffect(() => {
+        setTimeout(() => {
+            if (messagesCtrRef.current) {
+                messagesCtrRef.current.scrollTop = messagesCtrRef.current.scrollHeight;
+            }
+        }, 10);        
+    }, [selectedConversation]);
+
     useEffect(() => {
         // --- FIX HERE ---
         // Safely access messages.data, defaulting to an empty array if anything is missing.
@@ -25,6 +33,7 @@ function Home({ messages = null, selectedConversation = null }) {
         }
         // --- END FIX ---
     }, [messages]);
+
     return (
         <>
             {!messages && (
