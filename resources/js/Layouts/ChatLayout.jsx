@@ -1,9 +1,9 @@
-import { usePage } from "@inertiajs/react";
+import { usePage, router } from "@inertiajs/react";
 import { useEffect, useState } from "react";
-import { PencilSquareIcon } from "@heroicons/react/24/solid";
+import { PencilSquareIcon, ChevronLeftIcon } from "@heroicons/react/24/solid";
 import TextInput from "@/Components/TextInput";
 import ConversationListItem from "@/Components/App/ConversationItme";
-
+import { route } from "ziggy-js";
 export default function ChatLayout({ children }) {
   const page = usePage();
   const { conversations } = page.props;
@@ -11,6 +11,10 @@ export default function ChatLayout({ children }) {
   const [onlineUsers, setOnlineUsers] = useState({});
   const [localConversation, setLocalConversation] = useState(conversations || []);
   const [sortedConversations, setSortedConversations] = useState([]);
+  
+  // Check if we're on a specific chat route (user or group)
+  const currentRoute = page.url;
+  const isOnChatRoute = currentRoute.includes('/user/') || currentRoute.includes('/group/');
 
   const isUserOnline = (userId) => onlineUsers[userId];
 
@@ -24,6 +28,11 @@ export default function ChatLayout({ children }) {
         );
       })
     );
+  };
+
+  const handleBackToContacts = () => {
+    // Navigate back to the dashboard (main chat page)
+    router.visit(route('dashboard'));
   };
 
   useEffect(() => {
@@ -104,12 +113,9 @@ export default function ChatLayout({ children }) {
   return (
     <div className="flex w-full h-full overflow-hidden">
       {/* Left panel: conversations */}
-      {/* - On small screens: show this when NO conversation is selected (block). If a conversation is selected, hide it (hidden). */}
-      {/* - On sm+ screens: always show as a column with fixed width */}
       <aside
-        className={`bg-slate-800 flex flex-col overflow-hidden transition-all
-          ${selectedConversation ? "hidden xsm:flex" : "flex xsm:flex"}
-          w-full xsm:w-[320px] flex-shrink-0`}
+        className={`bg-slate-800 flex flex-col overflow-hidden transition-all flex-shrink-0
+          ${isOnChatRoute ? "hidden md:flex md:w-[320px]" : "flex w-full md:w-[320px]"}`}
       >
         <div className="flex items-center justify-between py-2 px-3 text-xl font-medium text-gray-200">
           Chats
@@ -142,13 +148,21 @@ export default function ChatLayout({ children }) {
       </aside>
 
       {/* Right panel: chat content */}
-      {/* - On small screens: show this only when a conversation is selected (block). Otherwise hide it (hidden). */}
-      {/* - On sm+ screens: always show and take remaining space */}
       <main
         className={`flex flex-col transition-all
-          ${selectedConversation ? "flex w-full" : "hidden sm:flex flex-1"}
-        `}
+          ${isOnChatRoute ? "flex w-full md:flex-1" : "hidden md:flex md:flex-1"}`}
       >
+        {/* Back button - only visible on mobile when on a chat route */}
+        {isOnChatRoute && (
+          <div className="md:hidden bg-slate-700 border-b border-slate-600">
+            <button
+              onClick={handleBackToContacts}
+              className="flex items-center gap-2 px-4 py-3 text-gray-200 hover:bg-slate-600 transition-colors w-full"
+            >
+              <ChevronLeftIcon className="h-5 w-5" />
+            </button>
+          </div>
+        )}
         {children}
       </main>
     </div>
