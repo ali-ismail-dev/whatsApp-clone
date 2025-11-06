@@ -58,5 +58,12 @@ class Group extends Model
             'is_online' => null,
         ];
     }
-    
+
+    public static function updateGroupWithMessage($groupId, $message)
+    {
+        return self::updateOrCreate(
+            ['id' => $groupId], //search by id
+            ['last_message_id' => $message->id]// value to update
+        );
+    }
 }

@@ -53,6 +53,21 @@ class User extends Authenticatable
         return $this->belongsToMany(Group::class, 'group_users');
     }
 
+    public function sentMessages()
+    {
+        return $this->hasMany(Message::class, 'sender_id');
+    }
+
+    public function receivedMessages()
+    {
+        return $this->hasMany(Message::class, 'receiver_id');
+    }
+
+    public function messages()
+    {
+        return $this->sentMessages()->orWhere('receiver_id', $this->id);
+    }
+
     public static function getUsersExceptUser(User $exceptUser)
     {
         $query = User::select(['users.*', 'messages.message as last_message', 'messages.created_at as last_message_date'])

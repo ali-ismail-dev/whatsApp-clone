@@ -6,15 +6,18 @@ use App\Models\User;
 use App\Models\Group;
 use App\Models\Message;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Log;
 use App\Models\Conversation;
 use Illuminate\Http\Request;
 use App\Events\SocketMessage;
 use App\Models\MessageAttachment;
+
 use Illuminate\Support\Facades\Auth;
+
 use App\Http\Resources\MessageResource;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Requests\StoreMessageRequest;
+
+
 
 class MessageController extends Controller
 {
@@ -24,32 +27,14 @@ class MessageController extends Controller
             return redirect()->route('login');
         }
 
-        \Log::info('Fetching messages for conversation between users:', [
-            'auth_id' => Auth::id(),
-            'user_id' => $user->id
-        ]);
-
-        Log::info('Auth user ID: ' . Auth::id());
-        Log::info('Target user ID: ' . $user->id);
-        
-        $query = Message::with(['sender', 'receiver', 'attachments'])
+        $messages = Message::with(['sender', 'receiver', 'attachments'])
             ->where(function($q) use ($user) {
                 $q->where('sender_id', Auth::id())
                   ->where('receiver_id', $user->id);
             })->orWhere(function($q) use ($user) {
                 $q->where('sender_id', $user->id)
                   ->where('receiver_id', Auth::id());
-            });
-            
-        Log::info('SQL Query: ' . $query->toSql());
-        Log::info('SQL Bindings: ', $query->getBindings());
-        
-        $messages = $query->latest()->paginate(10);
-            
-        \Log::info('Messages query result:', [
-            'count' => $messages->count(),
-            'total' => $messages->total()
-        ]);
+            })->latest()->paginate(10);
 
         return inertia('Home', [
             'selectedConversation' => $user->toConversationArray(),
@@ -76,24 +61,19 @@ class MessageController extends Controller
 
     public function loadOlder(Message $message)
     {
-        if ($message->group_id) {
+        if ($message->group_id)  {
             $message = Message::where('created_at', '<', $message->created_at)
-                ->where('group_id', $message->group_id)
-                ->latest()
-                ->paginate(10);
+            ->where('group_id', $message->group_id)
+            ->latest()
+            ->paginate(10);
         } else {
             $message = Message::where('created_at', '<', $message->created_at)
-                ->where(function($q) use ($message) {
-                    $q->where(function($query) use ($message) {
-                        $query->where('sender_id', $message->sender_id)
-                              ->where('receiver_id', $message->receiver_id);
-                    })->orWhere(function($query) use ($message) {
-                        $query->where('sender_id', $message->receiver_id)
-                              ->where('receiver_id', $message->sender_id);
-                    });
-                })
-                ->latest()
-                ->paginate(10);
+            ->where('sender_id', $message->sender_id)
+            ->where('receiver_id', $message->receiver_id)
+            ->orWhere('sender_id', $message->receiver_id)
+            ->where('receiver_id', $message->sender_id)
+            ->latest()
+            ->paginate(10);
         }
 
         return MessageResource::collection($message);
@@ -103,8 +83,9 @@ class MessageController extends Controller
     {
         $data = $request->validated();
         $data['sender_id'] = Auth::id();
-        $receiver = $data['receiver_id'] ?? null;
-        $group = $data['group_id'] ?? null;
+    $receiver = $data['receiver_id'] ?? null; // expected to be an id (int) or null
+    $group = $data['group_id'] ?? null; // expected to be an id (int) or null
+
         $files = $data['attachments'] ?? null;
 
         $message = Message::create($data);
@@ -124,7 +105,7 @@ class MessageController extends Controller
                 $attachment = MessageAttachment::create($model);
                 $attachments[] = $attachment;
             }
-            $message->attachments = $attachments;
+            $message->attachments=$attachments;
         }
 
         if ($receiver) {
@@ -134,8 +115,8 @@ class MessageController extends Controller
         if ($group) {
             Group::updateGroupWithMessage($group, $message);
         }
-        
         SocketMessage::dispatch($message);
+        
         return new MessageResource($message);
     }
 
@@ -151,5 +132,6 @@ class MessageController extends Controller
         return response()->json([
             'message' => 'Message deleted',
         ], 200);
+
     }
 }

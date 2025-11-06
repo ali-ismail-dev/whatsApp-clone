@@ -1,6 +1,7 @@
 import { Link, usePage } from "@inertiajs/react";
 import UserAvatar from "./UserAvatar";
 import GroupAvatar from "./GroupAvatar";
+import { route } from 'ziggy-js';
 import UserOptionsDropdown from "./UserOptionsDropdown";
 
 export default function ConversationItem({ conversation, online = null, selectedConversation = null }) {
@@ -16,7 +17,9 @@ export default function ConversationItem({ conversation, online = null, selected
     }
 
     return (
-        <Link href={conversation.is_group ? route('chat.group', conversation) : route('chat.user', conversation)} preserveState className={"conversation-item flex items-center gap-2 p-2 text-gray-300 transition-all cursor-pointer hover:bg-black/30" + classes + (conversation.is_user && conversation.is_admin ? "pr-2" : "pr-4")}>
+        <Link href={conversation.is_group ? route('chat.group', conversation) : route('chat.user', conversation)} 
+            preserveState 
+            className={"conversation-item flex items-center gap-2 p-2 text-gray-300 transition-all cursor-pointer hover:bg-black/30" + classes + (conversation.is_user && conversation.is_admin ? "pr-2" : "pr-4")}>
             {conversation.is_user && (
                 <UserAvatar user={conversation} online={online} />
             )}

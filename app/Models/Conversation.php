@@ -33,12 +33,33 @@ class Conversation extends Model
     {
         $user = User::getUsersExceptUser($exceptUser);
         $groups = Group::getGroupsForUser($exceptUser);
-        return $user->map(function(User $user) use ($exceptUser) {
+        return $user->map(function (User $user) use ($exceptUser) {
             return $user->toConversationArray();
         })->concat(
-            $groups->map(function(Group $group) use ($exceptUser) {
+            $groups->map(function (Group $group) use ($exceptUser) {
                 return $group->toConversationArray($exceptUser);
             })
         )->sortByDesc('last_message.created_at')->values()->all();
+    }
+
+    public static function updateConversationWithMessage($userId1, $userId2, $message)
+    {
+        $conversation = Conversation::where(function ($query) use ($userId1, $userId2) {
+            $query->where('user_id1', $userId1)->where('user_id2', $userId2);
+        })->orWhere(function ($query) use ($userId1, $userId2) {
+            $query->where('user_id1', $userId2)->where('user_id2', $userId1);
+        })->first();
+
+        if (!$conversation) {
+            Conversation::create([
+                'user_id1' => $userId1,
+                'user_id2' => $userId2,
+                'last_message_id' => $message->id
+            ]);
+        } else {
+            $conversation->update([
+                'last_message_id' => $message->id
+            ]);
+        }
     }
 }
