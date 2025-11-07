@@ -15,13 +15,10 @@ export default function MessageItem({ message }) {
 
   const isCurrentUserMessage = message.sender_id === currentUserId;
 
-  /**
-   * Layout:
-   * - outer .chat (daisyui) determines alignment (chat-start / chat-end)
-   * - inner wrapper is flex items-end so avatar/name sit aligned to bubble bottom
-   * - avatar+name rendered outside bubble (below avatar)
-   * - bubble contains message content and an absolutely positioned <time>
-   */
+  // Safety check: ensure message.message is a string
+  const messageContent = typeof message.message === 'string' 
+    ? message.message 
+    : JSON.stringify(message.message);
 
   const bubbleClasses = `pb-6 chat-bubble relative max-w-xl break-words ${
     isCurrentUserMessage ? "bg-gray-700 text-white" : "chat-bubble-info text-black"
@@ -36,14 +33,13 @@ export default function MessageItem({ message }) {
         {!isCurrentUserMessage && (
           <div className="flex flex-col items-center">
             <UserAvatar user={message.sender} profile={false} />
-           
           </div>
         )}
 
         {/* Message bubble */}
         <div className={bubbleClasses}>
           <div className="prose-sm">
-            <ReactMarkdown>{message.message}</ReactMarkdown>
+            <ReactMarkdown>{messageContent}</ReactMarkdown>
           </div>
 
           {/* Date/time inside the bubble (absolute positioned) */}

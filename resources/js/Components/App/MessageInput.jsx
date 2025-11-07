@@ -10,19 +10,35 @@ export default function MessageInput({ conversation = null }) {
 
     const sendMessage = () => {
         if (newMessage.trim() === '') {
-            setInputErrorMessage("Message cannot be empty.");
+            setInputErrorMessage("Message cannot be empty.");  
+            setTimeout(() => {
+        setInputErrorMessage('');
+    }, 3000);
             return;
         }
-        setInputErrorMessage('');
-        setMessageSending(true);
+        const formData = new FormData();
+        formData.append('message', newMessage);
 
-        console.log("Sending message to conversation:", conversation?.id, "Content:", newMessage);
-        
-        setTimeout(() => {
-            setNewMessage('');
-            setMessageSending(false);
-            adjustHeight(); // reset height when cleared
-        }, 1000);
+        if (conversation.is_user){
+            formData.append('receiver_id', conversation.id);
+        } else if (conversation.is_group) {
+            formData.append('group_id', conversation.id);
+        }
+        setMessageSending(true);
+        axios.post(route('message.store'), formData, {
+            onUploadProgress: (progressEvent) => {
+                const percentCompleted = Math.round( (progressEvent.loaded / progressEvent.total) * 100);
+                console.log(percentCompleted);
+            }
+        })
+            .then(response => {
+                setNewMessage('');
+                adjustHeight();
+                setMessageSending(false);
+            })
+            .catch(error => {
+                console.error("There was an error!", error);
+            });
     };
 
     // ✅ Automatically adjust textarea height
