@@ -5,33 +5,152 @@ import { useEffect, useRef, useState } from "react";
 import ConversationHeader from "@/Components/App/ConversationHeader";
 import MessageItem from "@/Components/App/MessageItem";
 import MessageInput from "@/Components/App/MessageInput";
+import { useEventBus } from "@/EventBus";
+import { useCallback } from "react";
+import axios from "axios";
 
 function Home({ messages = null, selectedConversation = null }) {
     const [messagesList, setMessagesList] = useState([]);
     const messagesCtrRef = useRef(null);
+    const loadMoreIntersect = useRef(null);
+    const { on } = useEventBus();
+
+    const [noMoreMessages, setNoMoreMessages] = useState(false);
+    const [scrollFromBottom, setScrollFromBottom] = useState(0);
+
+    const scrollToBottom = useCallback(() => {
+        if (messagesCtrRef.current) {
+            messagesCtrRef.current.scrollTop = messagesCtrRef.current.scrollHeight;
+        }
+    }, []);
+
+    const messageCreated = (message) => {
+        if (
+            selectedConversation &&
+            selectedConversation.is_group &&
+            selectedConversation.id == message.group_id
+        ) {
+            setMessagesList((prevMessages) => {
+                const newMessages = [...prevMessages, message];
+                // Scroll to bottom after state update
+                setTimeout(() => scrollToBottom(), 0);
+                return newMessages;
+            });
+        }
+        if (
+            selectedConversation &&
+            selectedConversation.is_user &&
+            (selectedConversation.id == message.sender_id ||
+                selectedConversation.id == message.receiver_id)
+        ) {
+            setMessagesList((prevMessages) => {
+                const newMessages = [...prevMessages, message];
+                // Scroll to bottom after state update
+                setTimeout(() => scrollToBottom(), 0);
+                return newMessages;
+            });
+        }
+    }
+
+    const loadMoreMessages = useCallback(() => {
+        if (noMoreMessages) {
+            return;
+        }
+        const firstMessage = messagesList[0];
+        axios
+            .get(route("message.loadOlder", firstMessage.id))
+            .then(({ data }) => {
+                if (data.data.length === 0) {
+                    setNoMoreMessages(true);
+                    return;
+                }
+
+                const scrollHeight = messagesCtrRef.current.scrollHeight;
+                const scrollTop = messagesCtrRef.current.scrollTop;
+                const clientHeight = messagesCtrRef.current.clientHeight;
+                const tmpScrollFromBottom = scrollHeight - scrollTop - clientHeight;
+                console.log("tmpScrollFromBottom", tmpScrollFromBottom);
+                setScrollFromBottom(tmpScrollFromBottom);
+
+                setMessagesList((prevMessages) => {
+                    return [...data.data.reverse(), ...prevMessages];
+                });
+            })
+    }, [messagesList, noMoreMessages]);
+
+    // Add this effect to watch for new messages and scroll
+useEffect(() => {
+    if (messagesList.length > 0) {
+        const lastMessage = messagesList[messagesList.length - 1];
+        // Check if this is a new message (you might need to adjust this logic)
+        // For example, check if it was created recently or by current user
+        scrollToBottom();
+    }
+}, [messagesList.length]); // Watch only the length changes
 
     useEffect(() => {
+        // Scroll to bottom when conversation changes
         setTimeout(() => {
-            if (messagesCtrRef.current) {
-                messagesCtrRef.current.scrollTop = messagesCtrRef.current.scrollHeight;
-            }
-        }, 10);        
+            scrollToBottom();
+        }, 100);
+        
+        const offCreated = on("message.created", messageCreated);
+        setScrollFromBottom(0);
+        setNoMoreMessages(false);
+        
+        return () => {
+            offCreated();
+        };
     }, [selectedConversation]);
 
     useEffect(() => {
-        // --- FIX HERE ---
-        // Safely access messages.data, defaulting to an empty array if anything is missing.
-        const data = messages?.data || []; 
-
+        // Scroll to bottom when messages are initially loaded
+        setTimeout(() => {
+            scrollToBottom();
+        }, 100);
+        
+        const data = messages?.data || [];
         if (Array.isArray(data)) {
-            // Only set if it's an array
             setMessagesList([...data].reverse());
         } else {
-            // Handle unexpected data structure gracefully
             setMessagesList([]);
         }
-        // --- END FIX ---
     }, [messages]);
+
+    useEffect(() => {
+        // Handle scroll position when loading older messages
+        if (messagesCtrRef.current && scrollFromBottom > 0) {
+            // Fixed calculation
+            messagesCtrRef.current.scrollTop = 
+                messagesCtrRef.current.scrollHeight - 
+                messagesCtrRef.current.clientHeight - 
+                scrollFromBottom;
+        }
+    }, [messagesList, scrollFromBottom]);
+
+    useEffect(() => {
+        if (noMoreMessages) {
+            return;
+        }
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                entry.isIntersecting && loadMoreMessages();
+            })
+        }, {
+            rootMargin: "0px 0px 100px 0px"
+        });
+        
+        if (loadMoreIntersect.current) {
+            setTimeout(() => {
+                observer.observe(loadMoreIntersect.current);
+            }, 100);
+        }
+
+        return () => {
+            observer.disconnect();
+        }
+    }, [messagesList, loadMoreMessages, noMoreMessages]);
 
     return (
         <>
@@ -45,20 +164,23 @@ function Home({ messages = null, selectedConversation = null }) {
             )}
             {messages && (
                 <>
-                    <ConversationHeader selectedConversation={selectedConversation} />
+                    <ConversationHeader
+                        selectedConversation={selectedConversation}
+                    />
                     <div
                         ref={messagesCtrRef}
-                        className="flex-1 overflow-y-auto p-5"
+                        className="flex-1 overflow-y-auto p-2"
                     >
-                        {messagesList.length === 0 &&
+                        {messagesList.length === 0 && (
                             <div className="flex justify-center items-center h-full">
                                 <div className="text-lg text-slate-200">
                                     No messages yet
                                 </div>
                             </div>
-                        }
-                        {messagesList.length > 0 &&
+                        )}
+                        {messagesList.length > 0 && (
                             <div className="flex-1 flex flex-col gap-2">
+                                <div ref={loadMoreIntersect}></div>
                                 {messagesList.map((message) => (
                                     <MessageItem
                                         key={message.id}
@@ -66,17 +188,15 @@ function Home({ messages = null, selectedConversation = null }) {
                                     />
                                 ))}
                             </div>
-
-                                }
-
+                        )}
                     </div>
-                    <MessageInput conversation = {selectedConversation} />
+                    <MessageInput conversation={selectedConversation} />
                 </>
-
             )}
         </>
     );
 }
+
 Home.layout = (page) => {
     return (
         <AuthenticatedLayout user={page.props.auth.user}>

@@ -20,7 +20,7 @@ export default function MessageItem({ message }) {
     ? message.message 
     : JSON.stringify(message.message);
 
-  const bubbleClasses = `pb-6 chat-bubble relative max-w-xl break-words ${
+  const bubbleClasses = `pb-6 chat-bubble relative max-w-xl min-w-[60px] break-words ${
     isCurrentUserMessage ? "bg-gray-700 text-white" : "chat-bubble-info text-black"
   }`;
 

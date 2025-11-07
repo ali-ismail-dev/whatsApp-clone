@@ -16,6 +16,7 @@ use App\Http\Resources\MessageResource;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Requests\StoreMessageRequest;
 
+
 class MessageController extends Controller
 {
     public function byUser(User $user)

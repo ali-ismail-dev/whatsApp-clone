@@ -2,15 +2,64 @@ import ApplicationLogo from '@/Components/ApplicationLogo';
 import Dropdown from '@/Components/Dropdown';
 import NavLink from '@/Components/NavLink';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
+import { useEventBus } from '@/EventBus';
 import { Link, usePage } from '@inertiajs/react';
 import { useState } from 'react';
+import { useEffect } from 'react';
+
 
 export default function AuthenticatedLayout({ header, children }) {
     const user = usePage().props.auth.user;
-   
+    const conversations = usePage().props.conversations;
+    const { emit } = useEventBus();
     const [showingNavigationDropdown, setShowingNavigationDropdown] =
         useState(false);
-
+    useEffect(() => {
+        conversations.forEach((conversation) => {
+            let channel = `message.group.${conversation.id}`;
+            if (conversation.is_user) {
+                channel = `message.user.${[
+                    parseInt(user.id),
+                    parseInt(conversation.id),
+                ]
+                    .sort((a, b) => a - b)
+                    .join('-')}`;
+            }
+            
+            Echo.private(channel)
+            .error((error) => {
+                console.log(error);
+            })
+            .listen('SocketMessage', (e) => {
+                console.log('SocketMessage', e);
+                const message = e.message;
+                emit('message.created', message);
+                if (message.sender_id === user.id) {
+                    return;
+                }
+                emit('newMessageNotification', {
+                    user : message.sender,
+                    group_id : message.group_id,
+                    message: 
+                     message.message || `Shared ${message.attachments.length} attachment(s)`,
+                });
+            });
+        })
+        return () => {
+            conversations.forEach((conversation) => {
+                let channel = `message.group.${conversation.id}`;
+                if (conversation.is_user) {
+                    channel = `message.user.${[
+                        parseInt(user.id),
+                        parseInt(conversation.id),
+                    ]
+                        .sort((a, b) => a - b)
+                        .join('-')}`;
+                }
+                Echo.leave(channel);
+            })
+        }
+    }, [conversations]);
     return (
         <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col h-screen">
             <nav className="border-b border-gray-100 bg-white dark:border-gray-700 dark:bg-gray-800">
