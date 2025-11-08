@@ -4,13 +4,52 @@ import GroupAvatar from "./GroupAvatar";
 import { route } from "ziggy-js";
 import UserOptionsDropdown from "./UserOptionsDropdown";
 
-function formatShortTime(value) {
+/**
+ * Smart time formatting for conversation list - WhatsApp style
+ * - Today: shows time like "2:45 PM"
+ * - Yesterday: shows "Yesterday"
+ * - This week: shows day name like "Monday"
+ * - Older: shows date like "1/15/24"
+ */
+function formatSmartTime(value) {
   try {
     if (!value) return "";
-    const d = new Date(value);
-    if (isNaN(d)) return String(value);
-    // show short time like "14:32" — adjust to your locale if desired
-    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const messageDate = new Date(value);
+    if (isNaN(messageDate)) return String(value);
+    
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    const msgDate = new Date(messageDate.getFullYear(), messageDate.getMonth(), messageDate.getDate());
+    
+    // Today: show time
+    if (msgDate.getTime() === today.getTime()) {
+      return messageDate.toLocaleTimeString([], { 
+        hour: "numeric", 
+        minute: "2-digit",
+        hour12: true 
+      });
+    }
+    
+    // Yesterday
+    if (msgDate.getTime() === yesterday.getTime()) {
+      return "Yesterday";
+    }
+    
+    // Within last 7 days: show day name
+    const daysDiff = Math.floor((today - msgDate) / (1000 * 60 * 60 * 24));
+    if (daysDiff < 7) {
+      return messageDate.toLocaleDateString([], { weekday: 'long' });
+    }
+    
+    // Older: show short date
+    return messageDate.toLocaleDateString([], { 
+      month: 'numeric', 
+      day: 'numeric',
+      year: messageDate.getFullYear() !== now.getFullYear() ? '2-digit' : undefined
+    });
   } catch {
     return String(value);
   }
@@ -58,12 +97,13 @@ export default function ConversationItem({
 
   const lastText = extractLastMessageText(conversation.last_message);
 
-  // prefer explicit last_message_time, otherwise fallback to created_at inside last_message object
+  // Use smart time formatting
   const lastTime =
-    conversation.last_message_time ||
-    (conversation.last_message && conversation.last_message.created_at
-      ? formatShortTime(conversation.last_message.created_at)
-      : "");
+    conversation.last_message_time
+      ? formatSmartTime(conversation.last_message_time)
+      : conversation.last_message && conversation.last_message.created_at
+      ? formatSmartTime(conversation.last_message.created_at)
+      : "";
 
   return (
     <Link

@@ -1,9 +1,11 @@
 import { usePage, router } from "@inertiajs/react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, cloneElement } from "react";
 import { PencilSquareIcon, ChevronLeftIcon } from "@heroicons/react/24/solid";
 import TextInput from "@/Components/TextInput";
 import ConversationListItem from "@/Components/App/ConversationItme";
 import { route } from "ziggy-js";
+import { useEventBus } from "@/EventBus";
+
 export default function ChatLayout({ children }) {
   const page = usePage();
   const { conversations } = page.props;
@@ -11,6 +13,7 @@ export default function ChatLayout({ children }) {
   const [onlineUsers, setOnlineUsers] = useState({});
   const [localConversation, setLocalConversation] = useState(conversations || []);
   const [sortedConversations, setSortedConversations] = useState([]);
+  const { on } = useEventBus();  
   
   // Check if we're on a specific chat route (user or group)
   const currentRoute = page.url;
@@ -34,6 +37,45 @@ export default function ChatLayout({ children }) {
     // Navigate back to the dashboard (main chat page)
     router.visit(route('dashboard'));
   };
+
+  const messageCreated = (message) =>{
+    setLocalConversation((oldUsers) => {
+      return oldUsers.map((u)=>{
+        if (
+          message.receiver_id &&
+          !u.is_group &&
+          (u.id == message.sender_id || u.id == message.receiver_id)
+        ) {
+            u.last_message = message.message;
+            u.last_message_date = message.created_at;
+            u.last_message_time = message.created_at;
+            u.last_message_sender_id = message.sender_id;
+            u.last_message_receiver_id = message.receiver_id;
+            return u
+          }
+          if (
+            message.group_id &&
+            u.is_group &&
+            u.id == message.group_id
+          ) {
+            u.last_message = message.message;
+            u.last_message_date = message.created_at;
+            u.last_message_time = message.created_at;
+            u.last_message_sender_id = message.sender_id;
+            u.last_message_receiver_id = message.receiver_id;
+            return u 
+          }
+          return u;
+      })
+    })
+  }
+  
+  useEffect(() => {
+    const offCreated = on("message.created", messageCreated);
+    return () => {
+      offCreated();
+    }
+  }, [on]);
 
   useEffect(() => {
     setSortedConversations(
@@ -110,6 +152,18 @@ export default function ChatLayout({ children }) {
     };
   }, []);
 
+  // Clone children and pass onlineUsers prop
+  const childrenWithProps = children?.type 
+  ? cloneElement(children, { 
+      ...children.props,
+      onlineUsers 
+    })
+  : children;
+    console.log('=== ChatLayout Debug ===');
+console.log('onlineUsers in ChatLayout:', onlineUsers);
+console.log('children:', children);
+console.log('=======================');
+
   return (
     <div className="flex w-full h-full overflow-hidden">
       {/* Left panel: conversations */}
@@ -152,18 +206,8 @@ export default function ChatLayout({ children }) {
         className={`flex flex-col transition-all
           ${isOnChatRoute ? "flex w-full md:flex-1" : "hidden md:flex md:flex-1"}`}
       >
-        {/* Back button - only visible on mobile when on a chat route */}
-        {isOnChatRoute && (
-          <div className="md:hidden bg-slate-700 border-b border-slate-600">
-            <button
-              onClick={handleBackToContacts}
-              className="flex items-center gap-2 px-4 py-3 text-gray-200 hover:bg-slate-600 transition-colors w-full"
-            >
-              <ChevronLeftIcon className="h-5 w-5" />
-            </button>
-          </div>
-        )}
-        {children}
+        
+        {childrenWithProps}
       </main>
     </div>
   );

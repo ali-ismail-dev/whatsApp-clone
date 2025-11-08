@@ -1,29 +1,10 @@
-// Helpers.js - Add these helper functions
+import React from 'react';
 
 /**
- * Format time only (no date) for messages - WhatsApp style
- * Example: "2:45 PM"
+ * Formats a date for display in the separator
+ * Returns "Today", "Yesterday", or a formatted date
  */
-export function formatMessageTime(value) {
-  try {
-    if (!value) return "";
-    const d = new Date(value);
-    if (isNaN(d)) return String(value);
-    return d.toLocaleTimeString([], { 
-      hour: "numeric", 
-      minute: "2-digit",
-      hour12: true 
-    });
-  } catch {
-    return String(value);
-  }
-}
-
-/**
- * Format date for separators - WhatsApp style
- * Returns "Today", "Yesterday", or formatted date
- */
-export function formatDateSeparator(dateString) {
+function formatDateSeparator(dateString) {
   const messageDate = new Date(dateString);
   const today = new Date();
   const yesterday = new Date(today);
@@ -49,21 +30,20 @@ export function formatDateSeparator(dateString) {
 }
 
 /**
- * Keep your existing formatMessageDateLong for other uses if needed
+ * WhatsApp-style date separator component
  */
-export function formatMessageDateLong(value) {
-  try {
-    if (!value) return "";
-    const d = new Date(value);
-    if (isNaN(d)) return String(value);
-    return d.toLocaleString();
-  } catch {
-    return String(value);
-  }
+export default function DateSeparator({ date }) {
+  return (
+    <div className="flex justify-center items-center my-4">
+      <div className="bg-gray-600/50 text-gray-200 text-xs px-3 py-1 rounded-full shadow-sm">
+        {formatDateSeparator(date)}
+      </div>
+    </div>
+  );
 }
 
 /**
- * Groups messages by date for WhatsApp-style date separators
+ * Groups messages by date
  * Returns an array of objects: { type: 'date', date: '...' } or { type: 'message', message: {...} }
  */
 export function groupMessagesByDate(messages) {

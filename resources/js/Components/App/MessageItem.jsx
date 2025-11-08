@@ -2,7 +2,23 @@ import React from "react";
 import ReactMarkdown from "react-markdown";
 import UserAvatar from "./UserAvatar";
 import { usePage } from "@inertiajs/react";
-import { formatMessageDateLong } from "@/Helpers";
+
+// Helper function to format just the time (no date)
+function formatMessageTime(value) {
+  try {
+    if (!value) return "";
+    const d = new Date(value);
+    if (isNaN(d)) return String(value);
+    // Show only time like "2:45 PM"
+    return d.toLocaleTimeString([], { 
+      hour: "numeric", 
+      minute: "2-digit",
+      hour12: true 
+    });
+  } catch {
+    return String(value);
+  }
+}
 
 export default function MessageItem({ message }) {
   const { props } = usePage();
@@ -24,7 +40,9 @@ export default function MessageItem({ message }) {
     isCurrentUserMessage ? "bg-gray-700 text-white" : "chat-bubble-info text-black"
   }`;
 
-  const timePositionClass = isCurrentUserMessage ? "right-2 bottom-1 text-[10px] opacity-60" : "left-2 bottom-1 text-[10px] opacity-60";
+  const timePositionClass = isCurrentUserMessage 
+    ? "right-2 bottom-1 text-[10px] opacity-60" 
+    : "left-2 bottom-1 text-[10px] opacity-60";
 
   return (
     <div className={`chat ${isCurrentUserMessage ? "chat-end" : "chat-start"} mb-4`}>
@@ -42,9 +60,9 @@ export default function MessageItem({ message }) {
             <ReactMarkdown>{messageContent}</ReactMarkdown>
           </div>
 
-          {/* Date/time inside the bubble (absolute positioned) */}
+          {/* Time only (no date) inside the bubble */}
           <time className={`absolute ${timePositionClass}`}>
-            {formatMessageDateLong(message.created_at)}
+            {formatMessageTime(message.created_at)}
           </time>
         </div>
 

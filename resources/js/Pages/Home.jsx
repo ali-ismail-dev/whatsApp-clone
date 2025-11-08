@@ -5,11 +5,15 @@ import { useEffect, useRef, useState } from "react";
 import ConversationHeader from "@/Components/App/ConversationHeader";
 import MessageItem from "@/Components/App/MessageItem";
 import MessageInput from "@/Components/App/MessageInput";
+import DateSeparator, { groupMessagesByDate } from "@/Components/App/DateSeparator";
 import { useEventBus } from "@/EventBus";
 import { useCallback } from "react";
 import axios from "axios";
 
-function Home({ messages = null, selectedConversation = null }) {
+function Home({ messages = null, selectedConversation = null, onlineUsers = {} }) {
+       console.log('=== Home Component Debug ===');
+    console.log('onlineUsers received in Home:', onlineUsers);
+    console.log('===========================');
     const [messagesList, setMessagesList] = useState([]);
     const messagesCtrRef = useRef(null);
     const loadMoreIntersect = useRef(null);
@@ -17,6 +21,11 @@ function Home({ messages = null, selectedConversation = null }) {
 
     const [noMoreMessages, setNoMoreMessages] = useState(false);
     const [scrollFromBottom, setScrollFromBottom] = useState(0);
+    
+    // Check if the selected user is online
+    const isOnline = selectedConversation && !selectedConversation.is_group 
+        ? !!onlineUsers[selectedConversation.id]
+        : false;
 
     const scrollToBottom = useCallback(() => {
         if (messagesCtrRef.current) {
@@ -79,14 +88,14 @@ function Home({ messages = null, selectedConversation = null }) {
     }, [messagesList, noMoreMessages]);
 
     // Add this effect to watch for new messages and scroll
-useEffect(() => {
-    if (messagesList.length > 0) {
-        const lastMessage = messagesList[messagesList.length - 1];
-        // Check if this is a new message (you might need to adjust this logic)
-        // For example, check if it was created recently or by current user
-        scrollToBottom();
-    }
-}, [messagesList.length]); // Watch only the length changes
+    useEffect(() => {
+        if (messagesList.length > 0) {
+            const lastMessage = messagesList[messagesList.length - 1];
+            // Check if this is a new message (you might need to adjust this logic)
+            // For example, check if it was created recently or by current user
+            scrollToBottom();
+        }
+    }, [messagesList.length]); // Watch only the length changes
 
     useEffect(() => {
         // Scroll to bottom when conversation changes
@@ -152,6 +161,9 @@ useEffect(() => {
         }
     }, [messagesList, loadMoreMessages, noMoreMessages]);
 
+    // Group messages by date for rendering
+    const groupedMessages = groupMessagesByDate(messagesList);
+
     return (
         <>
             {!messages && (
@@ -166,10 +178,11 @@ useEffect(() => {
                 <>
                     <ConversationHeader
                         selectedConversation={selectedConversation}
+                        online={isOnline}
                     />
                     <div
                         ref={messagesCtrRef}
-                        className="flex-1 overflow-y-auto p-2"
+                        className="flex-1 overflow-y-auto p-4"
                     >
                         {messagesList.length === 0 && (
                             <div className="flex justify-center items-center h-full">
@@ -181,12 +194,23 @@ useEffect(() => {
                         {messagesList.length > 0 && (
                             <div className="flex-1 flex flex-col gap-2">
                                 <div ref={loadMoreIntersect}></div>
-                                {messagesList.map((message) => (
-                                    <MessageItem
-                                        key={message.id}
-                                        message={message}
-                                    />
-                                ))}
+                                {groupedMessages.map((item) => {
+                                    if (item.type === 'date') {
+                                        return (
+                                            <DateSeparator
+                                                key={item.id}
+                                                date={item.date}
+                                            />
+                                        );
+                                    } else {
+                                        return (
+                                            <MessageItem
+                                                key={item.id}
+                                                message={item.message}
+                                            />
+                                        );
+                                    }
+                                })}
                             </div>
                         )}
                     </div>
