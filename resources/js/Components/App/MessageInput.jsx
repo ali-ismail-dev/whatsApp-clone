@@ -10,6 +10,7 @@ import { isAudio, isImage } from "@/Helpers";
 import { Popover } from "@headlessui/react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import AttachmentPreview from "./AttachmentPreview";
+import CustomAudioPlayer from "./CustomAudioPlayer";
 import axios from "axios";
 
 export default function MessageInput({ conversation = null }) {
@@ -209,7 +210,7 @@ export default function MessageInput({ conversation = null }) {
                 key={file.file.name + file.file.size}
                 className={
                   "relative rounded-md bg-slate-800 p-1 flex items-center justify-center overflow-hidden " +
-                  (!isImage(file.file) ? "w-[240px] h-[80px]" : "w-[100px] h-[100px]")
+                  (!isImage(file.file) ? "w-[300px] h-[100px]" : "w-[100px] h-[100px]")
                 }
               >
                 {isImage(file.file) && (
@@ -239,7 +240,7 @@ export default function MessageInput({ conversation = null }) {
                   className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
                   aria-label={`Remove ${file.file.name}`}
                 >
-                  <XMarkIcon className="w-4 h-4" />
+                  <XMarkIcon className="w-4 h-4 m-1" />
                 </button>
               </div>
             ))}

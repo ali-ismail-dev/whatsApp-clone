@@ -16,7 +16,7 @@ export default function MessageAttachment({ attachments = [], attachmentClick })
         return (
           <div
             key={attachment.id ?? attachment.url ?? index}
-            onClick={() => attachmentClick && attachmentClick(attachment, index)}
+            onClick={() => attachmentClick && attachmentClick(attachments, index)}
             className={`group relative cursor-pointer overflow-hidden text-gray-400 transition-all rounded-md
                   ${isRectangular
                     ? "flex flex-row w-[300px] h-[70px] items-center justify-between bg-slate-800 hover:bg-slate-700 p-3"
@@ -24,10 +24,9 @@ export default function MessageAttachment({ attachments = [], attachmentClick })
                   }`}
             role="button"
             tabIndex={0}
-            onKeyDown={(e) => e.key === "Enter" && attachmentClick && attachmentClick(attachment, index)}
-          >
+            onKeyDown={(e) => e.key === "Enter" && attachmentClick && attachmentClick(attachments, index)}          >
             {/* download button (if previewable or not) */}
-            {!isAudio(attachment) && (
+            {!isAudio(attachment) && !isPDF(attachment) && (
               <a
                 onClick={(ev) => ev.stopPropagation()}
                 download
@@ -73,12 +72,28 @@ export default function MessageAttachment({ attachments = [], attachmentClick })
 
             {/* PDF: embed or cover area with iframe (may be blocked in some browsers) */}
             {isPDF(attachment) && (
-              <iframe
-                src={attachment.url}
-                title={attachment.name ?? "pdf"}
-                className="w-full h-full object-cover"
-              />
-            )}
+                <div className="w-full flex items-center gap-2 py-2 px-3 rounded-md bg-slate-800">
+    <div className="flex-shrink-0">
+      <img src="/img/pdf.png" alt="PDF" className="w-10 h-12 object-contain" />
+    </div>
+
+    <div className="flex-1 text-gray-300 truncate">
+      <h3 className="text-sm font-medium truncate">{attachment.name}</h3>
+      <p className="text-xs text-gray-500">
+        {(attachment.size / 1024).toFixed(1)} KB
+      </p>
+    </div>
+
+    <a
+      href={attachment.url}
+      download
+      onClick={(ev) => ev.stopPropagation()}
+      className="p-2 rounded hover:bg-gray-700"
+    >
+      <ArrowDownTrayIcon className="w-5 h-5 text-gray-300" />
+    </a>
+  </div>
+)}
 
             {/* Non-previewable (other files): show icon + filename */}
             {!isPreviewable(attachment) && !isImage(attachment) && !isAudio(attachment) && !isVideo(attachment) && !isPDF(attachment) && (

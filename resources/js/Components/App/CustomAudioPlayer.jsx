@@ -54,7 +54,10 @@ export default function CustomAudioPlayer({ file, showVolume = true }) {
              ref={audioRef}
              controls
              onTimeUpdate={handleTimeUpdate}
+             onEnded={togglePlayPuse}
+             onVolumeChange={handleVolumeUpdate}
              onLoadMetadata={handleLoadMetadata}
+
              className="hidden"
              />
              <button onClick={togglePlayPuse}>

@@ -31,12 +31,7 @@ const attachmentsArr = Array.isArray(attachments) ? attachments : (attachments ?
   }, [index, previewableAttachments.length]);
 
   const attachment = previewableAttachments[currentIndex];
-console.log('=== Preview Debug ===');
-console.log('All attachments:', attachments);
-console.log('Previewable attachments:', previewableAttachments);
-console.log('Current attachment:', attachment);
-console.log('isImage:', attachment ? isImage(attachment) : 'no attachment');
-console.log('====================');
+
   const close = () => {
     onClose?.();
   };
@@ -83,7 +78,7 @@ console.log('====================');
               <Dialog.Panel className="flex flex-col w-full h-full transform overflow-hidden bg-slate-800 text-left align-middle shadow-xl transition-all">
                 <button
                   onClick={close}
-                  className="absolute top-3 right-3 w-10 h-10 flex items-center justify-center z-40 text-gray-300 hover:text-gray-800"
+                  className="absolute top-3 right-3 w-10 h-10 flex items-center justify-center z-40 text-gray-300 hover:bg-gray-500 hover:text-slate-800 rounded-full"
                 >
                   <XMarkIcon className="w-6 h-6" />
                 </button>
@@ -93,7 +88,7 @@ console.log('====================');
                   {currentIndex > 0 && (
                     <div
                       onClick={prev}
-                      className="absolute opacity-100 text-gray-100 cursor-pointer flex items-center justify-center w-16 h-16 left-4 top-1/2 -translate-y-1/2 rounded-full bg-black/50 z-30"
+                      className="absolute opacity-100 text-gray-100 cursor-pointer flex items-center justify-center w-16 h-16 left-4 top-1/2 -translate-y-1/2 hover:text-gray-800 hover:bg-slate-400 rounded-full bg-black/50 z-30"
                     >
                       <ArrowLeftIcon className="w-8 h-8" />
                     </div>
@@ -102,7 +97,7 @@ console.log('====================');
                   {currentIndex < previewableAttachments.length - 1 && (
                     <div
                       onClick={next}
-                      className="absolute opacity-100 text-gray-100 cursor-pointer flex items-center justify-center w-16 h-16 right-4 top-1/2 -translate-y-1/2 rounded-full bg-black/50 z-30"
+                      className="absolute opacity-100 text-gray-100 cursor-pointer flex items-center justify-center w-16 h-16 right-4 top-1/2 -translate-y-1/2 hover:text-gray-800  hover:bg-slate-400 rounded-full bg-black/50 z-30"
                     >
                       <ArrowRightIcon className="w-8 h-8" />
                     </div>
