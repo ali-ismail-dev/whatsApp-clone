@@ -96,3 +96,50 @@ export function groupMessagesByDate(messages) {
 
   return grouped;
 }
+
+export const isImage = (attachment) => {
+  if (!attachment) return false;
+  let mime = attachment.mime || attachment.type;
+  mime = mime.split(';')[0].split('/')[0].toLowerCase();
+  return mime === 'image'; 
+};
+
+export const isAudio = (attachment) => {
+  if (!attachment) return false;
+  let mime = attachment.mime || attachment.type;
+  mime = mime.split(';')[0].split('/')[0].toLowerCase();
+  return mime === 'audio'; 
+};
+
+export const isVideo = (attachment) => {
+  if (!attachment) return false;
+  let mime = attachment.mime || attachment.type;
+  mime = mime.split(';')[0].split('/')[0].toLowerCase();
+  return mime === 'video'; 
+};
+
+export const isPDF = (attachment) => {
+  if (!attachment) return false; // handle undefined/null
+  let mime = attachment.mime || attachment.type || '';
+  mime = mime.split(';')[0].split('/')[0].toLowerCase();
+  return mime === 'application' && (attachment.mime?.includes('pdf') || attachment.type?.includes('pdf'));
+};
+
+
+export const isPreviewable = (attachment) => {
+  if (!attachment) return false;
+  return isImage(attachment) || isAudio(attachment) || isVideo(attachment) || isPDF(attachment);
+};
+
+export const formatByets = (bytes, decimals = 2) => {
+  
+  if (bytes < 1024) {
+    return bytes + ' B';
+  } else if (bytes < 1048576) {
+    return (bytes / 1024).toFixed(1) + ' KB';
+  } else if (bytes < 1073741824) {
+    return (bytes / 1048576).toFixed(1) + ' MB';
+  } else {
+    return (bytes / 1073741824).toFixed(1) + ' GB';
+  }
+};

@@ -11,14 +11,13 @@ import { useCallback } from "react";
 import axios from "axios";
 
 function Home({ messages = null, selectedConversation = null, onlineUsers = {} }) {
-       console.log('=== Home Component Debug ===');
-    console.log('onlineUsers received in Home:', onlineUsers);
-    console.log('===========================');
+    
     const [messagesList, setMessagesList] = useState([]);
     const messagesCtrRef = useRef(null);
     const loadMoreIntersect = useRef(null);
     const { on } = useEventBus();
-
+    const [showAttachmentPreview, setShowAttachmentPreview] = useState(false);
+    const [previewAttachment, setPreviewAttachment] = useState({});
     const [noMoreMessages, setNoMoreMessages] = useState(false);
     const [scrollFromBottom, setScrollFromBottom] = useState(0);
     
@@ -86,6 +85,14 @@ function Home({ messages = null, selectedConversation = null, onlineUsers = {} }
                 });
             })
     }, [messagesList, noMoreMessages]);
+
+    const onAttachmentClick = (attachments, index) => {
+        setPreviewAttachment({
+            attachments,
+            index
+        });
+        setShowAttachmentPreview(true);
+    }
 
     // Add this effect to watch for new messages and scroll
     useEffect(() => {
@@ -216,6 +223,14 @@ function Home({ messages = null, selectedConversation = null, onlineUsers = {} }
                     </div>
                     <MessageInput conversation={selectedConversation} />
                 </>
+            )}
+            {previewAttachment.attachments && (
+                <AttachmentPreviewModal
+                    attachments={previewAttachment.attachments}
+                    index={previewAttachment.index}
+                    show = {showAttachmentPreview}
+                    onClose={() => setShowAttachmentPreview(false)}
+                />
             )}
         </>
     );

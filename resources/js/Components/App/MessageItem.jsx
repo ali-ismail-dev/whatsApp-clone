@@ -2,6 +2,7 @@ import React from "react";
 import ReactMarkdown from "react-markdown";
 import UserAvatar from "./UserAvatar";
 import { usePage } from "@inertiajs/react";
+import MessageAttachment from "./MessageAttachment";
 
 // Helper function to format just the time (no date)
 function formatMessageTime(value) {
@@ -20,7 +21,7 @@ function formatMessageTime(value) {
   }
 }
 
-export default function MessageItem({ message }) {
+export default function MessageItem({ message, attachmentClick }) {
   const { props } = usePage();
   const currentUserId = props.auth?.user?.id;
 
@@ -31,10 +32,12 @@ export default function MessageItem({ message }) {
 
   const isCurrentUserMessage = message.sender_id === currentUserId;
 
-  // Safety check: ensure message.message is a string
-  const messageContent = typeof message.message === 'string' 
-    ? message.message 
-    : JSON.stringify(message.message);
+  // Get attachments (handle both 'attachment' and 'attachments' keys)
+  const attachments = message.attachment || message.attachments || [];
+  const hasAttachments = attachments && attachments.length > 0;
+  
+  // Only show text if message exists and is not null
+  const hasText = message.message !== null && message.message !== undefined && message.message !== '';
 
   const bubbleClasses = `pb-6 chat-bubble relative max-w-xl min-w-[60px] break-words ${
     isCurrentUserMessage ? "bg-gray-700 text-white" : "chat-bubble-info text-black"
@@ -56,9 +59,20 @@ export default function MessageItem({ message }) {
 
         {/* Message bubble */}
         <div className={bubbleClasses}>
-          <div className="prose-sm">
-            <ReactMarkdown>{messageContent}</ReactMarkdown>
-          </div>
+          {/* Only render text if it exists */}
+          {hasText && (
+            <div className="prose-sm mb-2">
+              <ReactMarkdown>{message.message}</ReactMarkdown>
+            </div>
+          )}
+          
+          {/* Render attachments if they exist */}
+          {hasAttachments && (
+            <MessageAttachment
+              attachments={attachments}
+              attachmentClick={attachmentClick}
+            />
+          )}
 
           {/* Time only (no date) inside the bubble */}
           <time className={`absolute ${timePositionClass}`}>
