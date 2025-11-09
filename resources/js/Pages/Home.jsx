@@ -6,6 +6,7 @@ import ConversationHeader from "@/Components/App/ConversationHeader";
 import MessageItem from "@/Components/App/MessageItem";
 import MessageInput from "@/Components/App/MessageInput";
 import DateSeparator, { groupMessagesByDate } from "@/Components/App/DateSeparator";
+import AttachmentPreviewModal from "@/Components/App/AttachmentPreviewModal";
 import { useEventBus } from "@/EventBus";
 import { useCallback } from "react";
 import axios from "axios";
@@ -214,6 +215,7 @@ function Home({ messages = null, selectedConversation = null, onlineUsers = {} }
                                             <MessageItem
                                                 key={item.id}
                                                 message={item.message}
+                                                attachmentClick={onAttachmentClick}
                                             />
                                         );
                                     }
