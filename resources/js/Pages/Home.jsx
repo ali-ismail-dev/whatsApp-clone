@@ -78,7 +78,6 @@ function Home({ messages = null, selectedConversation = null, onlineUsers = {} }
                 const scrollTop = messagesCtrRef.current.scrollTop;
                 const clientHeight = messagesCtrRef.current.clientHeight;
                 const tmpScrollFromBottom = scrollHeight - scrollTop - clientHeight;
-                console.log("tmpScrollFromBottom", tmpScrollFromBottom);
                 setScrollFromBottom(tmpScrollFromBottom);
 
                 setMessagesList((prevMessages) => {

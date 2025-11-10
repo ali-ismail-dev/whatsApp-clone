@@ -9,12 +9,16 @@ export default function NewMessageNotification({  }) {
     const [toasts, setToasts] = useState([]);
 
     useEffect(() => {
-        on("newMessageNotification", ({message, user, group_id}) => {
+        on("newMessageNotification", (payload) => {
+    // Destructure the payload after logging it
+    const {message, user, group_id} = payload;
             const uuid = uuidv4();
-            setToasts((prevToasts) => [...prevToasts, { id: uuid, message, user, group_id }]);
+            setToasts((prevToasts) => {
+                return ([...prevToasts, { id: uuid, message, user, group_id }]);
+            });
             setTimeout(() => {
                 setToasts((prevToasts) => prevToasts.filter((toast) => toast.id !== uuid));
-            }, 5000);
+            }, 4000);
         });
     }, [on]);
 

@@ -109,7 +109,6 @@ export default function ChatLayout({ children }) {
   useEffect(() => {
     const echo = typeof window !== "undefined" ? window.Echo : null;
     if (!echo || typeof echo.join !== "function") {
-      console.warn("Echo is not initialized or join is not available.");
       return;
     }
 
@@ -127,7 +126,6 @@ export default function ChatLayout({ children }) {
           updatedUsers[user.id] = user;
           return updatedUsers;
         });
-        console.log(user.name + " joined the chat.");
       })
       .leaving((user) => {
         setOnlineUsers((prevOnlineUsers) => {
@@ -135,7 +133,6 @@ export default function ChatLayout({ children }) {
           delete updatedUsers[user.id];
           return updatedUsers;
         });
-        console.log(user.name + " left the chat.");
       })
       .error((error) => {
         console.error("Error in presence channel:", error);
@@ -159,10 +156,7 @@ export default function ChatLayout({ children }) {
       onlineUsers 
     })
   : children;
-    console.log('=== ChatLayout Debug ===');
-console.log('onlineUsers in ChatLayout:', onlineUsers);
-console.log('children:', children);
-console.log('=======================');
+    
 
   return (
     <div className="flex w-full h-full overflow-hidden">
