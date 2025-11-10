@@ -6,6 +6,8 @@ import { useEventBus } from '@/EventBus';
 import { Link, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { useEffect } from 'react';
+import Toast from '@/Components/App/Toast';
+import NewMessageNotification from '@/Components/App/NewMessageNotification';
 
 
 export default function AuthenticatedLayout({ header, children }) {
@@ -61,6 +63,7 @@ export default function AuthenticatedLayout({ header, children }) {
         }
     }, [conversations]);
     return (
+        <>
         <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col h-screen">
             <nav className="border-b border-gray-100 bg-white dark:border-gray-700 dark:bg-gray-800">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -222,5 +225,8 @@ export default function AuthenticatedLayout({ header, children }) {
 
             {children}
         </div>
+            <Toast />
+            <NewMessageNotification />
+        </>
     );
 }

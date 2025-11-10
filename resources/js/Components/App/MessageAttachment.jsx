@@ -19,7 +19,7 @@ export default function MessageAttachment({ attachments = [], attachmentClick })
             onClick={() => attachmentClick && attachmentClick(attachments, index)}
             className={`group relative cursor-pointer overflow-hidden text-gray-400 transition-all rounded-md
                   ${isRectangular
-                    ? "flex flex-row w-[300px] h-[70px] items-center justify-between bg-slate-800 hover:bg-slate-700 p-3"
+                    ? "flex flex-row w-[300px] h-[70px] items-center justify-between bg-slate-800"
                     : "flex flex-col w-40 aspect-square items-center justify-center bg-slate-800 hover:bg-slate-700"
                   }`}
             role="button"

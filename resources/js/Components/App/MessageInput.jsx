@@ -12,6 +12,7 @@ import { XMarkIcon } from "@heroicons/react/24/solid";
 import AttachmentPreview from "./AttachmentPreview";
 import CustomAudioPlayer from "./CustomAudioPlayer";
 import axios from "axios";
+import AudioRecorder from "./AudioRecorder";
 
 export default function MessageInput({ conversation = null }) {
   const [newMessage, setNewMessage] = useState("");
@@ -104,6 +105,10 @@ export default function MessageInput({ conversation = null }) {
     adjustHeight();
   };
 
+  const recordedAudioReady = (file, url) => {
+    setChosenFiles((prevFiles) => [...prevFiles, { file, url }]);
+  }
+
   return (
     <div className="w-full">
       {/* INPUT BAR */}
@@ -148,6 +153,7 @@ export default function MessageInput({ conversation = null }) {
               />
             </Popover.Panel>
           </Popover>
+          <AudioRecorder fileReady={recordedAudioReady} />
         </div>
 
         {/* INPUT AREA */}
@@ -181,6 +187,7 @@ export default function MessageInput({ conversation = null }) {
             <PaperAirplaneIcon className="w-6 h-6 transform -rotate-45" />
           )}
         </button>
+
 
         {/* ERROR MESSAGE */}
         {inputErrorMessage && (
