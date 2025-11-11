@@ -34,7 +34,7 @@ export default function MessageAttachment({ attachments = [], attachmentClick })
                 className="z-20 opacity-100 group-hover:opacity-100 transition-all w-8 h-8 flex items-center justify-center text-gray-100 bg-gray-800 rounded absolute right-2 top-2 cursor-pointer hover:bg-gray-600"
                 title={`Download ${attachment.name ?? "file"}`}
               >
-                <ArrowDownTrayIcon className="w-5 h-5" />
+                <ArrowDownTrayIcon className="w-5 h-5 z-20" />
               </a>
             )}
 
@@ -90,7 +90,7 @@ export default function MessageAttachment({ attachments = [], attachmentClick })
       onClick={(ev) => ev.stopPropagation()}
       className="p-2 rounded hover:bg-gray-700"
     >
-      <ArrowDownTrayIcon className="w-5 h-5 text-gray-300" />
+      <ArrowDownTrayIcon className="w-5 h-5 text-gray-300 z-20" />
     </a>
   </div>
 )}

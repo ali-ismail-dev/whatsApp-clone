@@ -3,6 +3,7 @@ import ReactMarkdown from "react-markdown";
 import UserAvatar from "./UserAvatar";
 import { usePage } from "@inertiajs/react";
 import MessageAttachment from "./MessageAttachment";
+import MessageOptionsDropdown from "./MessageOptionsDropDown";
 
 // Helper function to format just the time (no date)
 function formatMessageTime(value) {
@@ -48,7 +49,10 @@ export default function MessageItem({ message, attachmentClick }) {
     : "left-2 bottom-1 text-[10px] opacity-60";
 
   return (
-    <div className={`chat ${isCurrentUserMessage ? "chat-end" : "chat-start"} mb-4`}>
+    <div className={`chat ${isCurrentUserMessage ? "chat-end flex justify-end items-center" : "chat-start"} mb-4`}>
+      {message.sender_id === currentUserId && (
+        <MessageOptionsDropdown message={message} />
+      )}
       <div className="flex items-end gap-3">
         {/* Incoming: avatar on left; Bubble next; Outgoing: bubble first; avatar on right */}
         {!isCurrentUserMessage && (

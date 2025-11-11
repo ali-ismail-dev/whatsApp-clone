@@ -75,6 +75,11 @@ class Group extends Model
     ];
 }
 
+    public function lastmessage()
+    {
+        return $this->belongsTo(Message::class, 'last_message_id');
+    }
+
     public static function updateGroupWithMessage($groupId, $message)
     {
         return self::updateOrCreate(

@@ -148,9 +148,26 @@ class MessageController extends Controller
             ], 403);
         }
 
+        $group = null;
+        $conversation = null;
+
+        if ($message->group_id) {
+            $group = Group::where('last_message_id', $message->id)->first(); 
+        } else {
+            $conversation = Conversation::where('last_message_id', $message->id)->first();
+        }
+
         $message->delete();
+
+        if ($group) {
+            $group = Group::find($group->id);
+            $lastMessage = $group->lastmessage;
+        } else if ($conversation) {
+            $conversation = Conversation::find($conversation->id);
+            $lastMessage = $conversation->lastmessage;
+        }
         return response()->json([
-            'message' => 'Message deleted',
-        ], 200);
+            'message' => $lastMessage ? new MessageResource($lastMessage) : null,
+        ]);
     }
 }

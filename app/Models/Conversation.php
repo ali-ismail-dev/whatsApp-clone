@@ -58,6 +58,8 @@ class Conversation extends Model
     // ----------------------------------------------------
 }
 
+    
+
     public static function updateConversationWithMessage($userId1, $userId2, $message)
     {
         $conversation = Conversation::where(function ($query) use ($userId1, $userId2) {

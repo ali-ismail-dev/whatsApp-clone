@@ -3,20 +3,31 @@ import Dropdown from "@/Components/Dropdown";
 import NavLink from "@/Components/NavLink";
 import ResponsiveNavLink from "@/Components/ResponsiveNavLink";
 import { useEventBus } from "@/EventBus";
-import { Link, usePage } from "@inertiajs/react";
-import { useState } from "react";
-import { useEffect } from "react";
+import { Link, usePage, router } from "@inertiajs/react"; // <-- ADDED: router import
+import { useState, useEffect } from "react";
 import Toast from "@/Components/App/Toast";
 import NewMessageNotification from "@/Components/App/NewMessageNotification";
 
 export default function AuthenticatedLayout({ header, children }) {
     const user = usePage().props.auth.user;
     const conversations = usePage().props.conversations;
-    const { emit } = useEventBus();
+    const { emit, on } = useEventBus(); // <-- ADDED: 'on' for listening to events
+    
+    // 1. Local state for conversations to enable real-time removal from sidebar
+    const [localConversations, setLocalConversations] = useState(conversations);
+
     const [showingNavigationDropdown, setShowingNavigationDropdown] =
         useState(false);
+
+    // Sync local state when the Inertia prop changes (e.g., on page refresh)
     useEffect(() => {
-        conversations.forEach((conversation) => {
+        setLocalConversations(conversations);
+    }, [conversations]);
+
+
+    // 2. Echo Listener Setup (Uses localConversations for dynamic channel listening)
+    useEffect(() => {
+        localConversations.forEach((conversation) => {
             let channel = `message.group.${conversation.id}`;
             if (conversation.is_user) {
                 channel = `message.user.${[
@@ -27,18 +38,19 @@ export default function AuthenticatedLayout({ header, children }) {
                     .join("-")}`;
             }
 
+            // Message listener
             Echo.private(channel)
                 .error((error) => {
-                    console.log(error);
+                    console.error("Echo Message Error:", error);
                 })
                 .listen("SocketMessage", (e) => {
-                    console.log("SocketMessage RECEIVED:", e); // <-- Console Log 1: Confirms WebSocket event                
+                    console.log("SocketMessage RECEIVED:", e);
                     const message = e.message;
                     emit("message.created", message);
                     if (message.sender_id === user.id) {
                         return;
                     }
-                    console.log("EMITTING NOTIFICATION:", message.sender.name); // <-- Console Log 2: Confirms event bus call
+                    console.log("EMITTING NOTIFICATION:", message.sender.name);
                     emit("newMessageNotification", {
                         user: message.sender,
                         group_id: message.group_id,
@@ -47,9 +59,23 @@ export default function AuthenticatedLayout({ header, children }) {
                             `Shared ${message.attachments.length} attachment(s)`,
                     });
                 });
+
+            // Group Deletion listener
+            if (conversation.is_group) {
+                Echo.private(`group.deleted.${conversation.id}`)
+                    .listen("GroupDeletedEvent", (e) => {
+                        console.log("GroupDeletedEvent received for ID:", e.id);
+                        // Emit to self for handling deletion logic
+                        emit("group.deleted", { id: e.id, name: e.name });
+                    })
+                    .error((error) => {
+                        console.error("Echo Group Delete Error:", error);
+                    });
+            }
         });
+
         return () => {
-            conversations.forEach((conversation) => {
+            localConversations.forEach((conversation) => {
                 let channel = `message.group.${conversation.id}`;
                 if (conversation.is_user) {
                     channel = `message.user.${[
@@ -60,9 +86,37 @@ export default function AuthenticatedLayout({ header, children }) {
                         .join("-")}`;
                 }
                 Echo.leave(channel);
+                if (conversation.is_group) {
+                    Echo.leave(`group.deleted.${conversation.id}`);
+                }
             });
         };
-    }, [conversations]);
+    }, [localConversations]);
+
+
+    // 3. Event Bus Listener for Group Deletion (Handles sidebar update, toast, and redirection)
+    useEffect(() => {
+        const off = on("group.deleted", ({ id, name }) => {
+            // 1. Display success toast
+            emit("toast.show", `Group "${name}" has been permanently deleted.`, 'success');
+
+            // 2. Update the sidebar by filtering out the deleted group
+            setLocalConversations((prev) => 
+                prev.filter((c) => c.id !== id)
+            );
+
+            // 3. Check if the user is currently viewing the deleted group
+            const currentConversationId = usePage().props.conversation?.id; 
+
+            if (currentConversationId === id) {
+                // If viewing the deleted group, redirect to dashboard
+                router.visit(route("dashboard"));
+            }
+        });
+
+        return () => off();
+    }, [usePage().props.conversation]);
+
     return (
         <>
             <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col h-screen">

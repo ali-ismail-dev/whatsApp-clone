@@ -146,7 +146,7 @@ export default function MessageInput({ conversation = null }) {
             <Popover.Button className="p-2 text-slate-400 hover:text-cyan-400 transition-colors rounded-full">
               <FaceSmileIcon className="w-6 h-6" />
             </Popover.Button>
-            <Popover.Panel className="absolute left-0 z-10 bottom-full">
+            <Popover.Panel className="absolute left-0 z-50 bottom-full">
               <EmojiPicker
                 theme="dark"
                 onEmojiClick={(ev) => setNewMessage((m) => m + ev.emoji)}

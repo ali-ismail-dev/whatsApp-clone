@@ -5,6 +5,9 @@ import TextInput from "@/Components/TextInput";
 import ConversationListItem from "@/Components/App/ConversationItme";
 import { route } from "ziggy-js";
 import { useEventBus } from "@/EventBus";
+import GroupModal from "@/Components/App/GroupModal";
+
+
 
 export default function ChatLayout({ children }) {
   const page = usePage();
@@ -13,7 +16,8 @@ export default function ChatLayout({ children }) {
   const [onlineUsers, setOnlineUsers] = useState({});
   const [localConversation, setLocalConversation] = useState(conversations || []);
   const [sortedConversations, setSortedConversations] = useState([]);
-  const { on } = useEventBus();  
+  const [showGroupModal, setShowGroupModal] = useState(false);
+  const { on, emit } = useEventBus();  
   
   // Check if we're on a specific chat route (user or group)
   const currentRoute = page.url;
@@ -69,13 +73,66 @@ export default function ChatLayout({ children }) {
       })
     })
   }
+  const messageDeleted = ({prevMessages}) => {
+    if (!prevMessages) {
+      return;
+    }
+    setLocalConversation((oldUsers) => {
+      return oldUsers.map((u) => {
+        if (
+          prevMessages.receiver_id && 
+          !u.is_group && 
+          (u.id == prevMessages.sender_id || u.id == prevMessages.receiver_id)) {
+            u.last_message = prevMessages.message;
+            u.last_message_date = prevMessages.created_at; 
+            u.last_message_time = prevMessages.created_at;
+            u.last_message_sender_id = prevMessages.sender_id;
+            u.last_message_receiver_id = prevMessages.receiver_id;
+            return u
+          }
+          if (
+            prevMessages.group_id &&
+            u.is_group &&
+            u.id == prevMessages.group_id
+          ) {
+            u.last_message = prevMessages.message;
+            u.last_message_date = prevMessages.created_at;
+            u.last_message_time = prevMessages.created_at;
+            u.last_message_sender_id = prevMessages.sender_id;
+            u.last_message_receiver_id = prevMessages.receiver_id;
+            return u 
+          }
+          return u;
+        }
+      )
+    })
+  }
   
   useEffect(() => {
     const offCreated = on("message.created", messageCreated);
+    const offDeleted = on("message.deleted", messageDeleted);
+    const offModalShow = on("GroupModal.show", (group) => {
+      setShowGroupModal(true);
+    });
+    const offGroupDeleted = on("group.deleted", ({id , name}) => {
+      setLocalConversation((oldConversations) => {
+        return oldConversations.filter((c) => c.id !== id);
+      })
+      emit('toast.show', `Group "${name}" deleted successfully`);
+      if (
+        !selectedConversation ||
+         selectedConversation.is_group &&
+          selectedConversation.id == id) {
+        router.visit(route('dashboard'));
+      }
+    });
     return () => {
       offCreated();
+      offDeleted();
+      offModalShow();
+      offGroupDeleted();
     }
-  }, [on]);
+  }, [on, selectedConversation]);
 
   useEffect(() => {
     setSortedConversations(
@@ -168,7 +225,7 @@ export default function ChatLayout({ children }) {
         <div className="flex items-center justify-between py-2 px-3 text-xl font-medium text-gray-200">
           Chats
           <div className="tooltip tooltip-left" data-tip="Create new Group">
-            <button className="text-gray-400 hover:text-gray-200">
+            <button onClick={ev=>setShowGroupModal(true)} className="text-gray-400 hover:text-gray-200">
               <PencilSquareIcon className="h-5 w-5 inline-block ml-2 " />
             </button>
           </div>
@@ -203,6 +260,7 @@ export default function ChatLayout({ children }) {
         
         {childrenWithProps}
       </main>
+      <GroupModal onClose={() => setShowGroupModal(false)} show={showGroupModal} />
     </div>
   );
 }

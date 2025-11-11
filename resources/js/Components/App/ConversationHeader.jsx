@@ -1,9 +1,31 @@
-import { ChevronLeftIcon } from '@heroicons/react/24/outline';
+import { ChevronLeftIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
 import { Link } from '@inertiajs/react';
 import GroupAvatar from './GroupAvatar';
 import UserAvatar from './UserAvatar';
+import axios from 'axios';
+import { usePage } from '@inertiajs/react';
+import GroupDescriptionPopover from './GroupDescriptionPopover';
+import GroupUsersPopover from './GroupUsersPopover';
+import {TrashIcon} from '@heroicons/react/24/outline';
+import { useEventBus } from '@/EventBus';
+
+
 
 export default function ConversationHeader({ selectedConversation, online = false }) {
+    const { auth } = usePage().props;
+    const {emit} = useEventBus();
+
+    const onGroupDelete = () => {
+        if (!window.confirm('Are you sure you want to delete this group?')) return;
+        axios.delete(route('group.destroy', selectedConversation.id))
+            .then(response => {
+                emit("toast.show", response.data.message);
+                console.log(response.data);
+            })
+            .catch(error => {
+                console.error("There was an error!", error);
+            });
+    };
     return (
         <>
             {selectedConversation && (
@@ -48,7 +70,41 @@ export default function ConversationHeader({ selectedConversation, online = fals
                             )}
                         </div>
                     </div> 
-                    {/* Add any options/settings icons here */}
+                    {selectedConversation.is_group && (
+                        <div className='flex gap-4 mt-1'>
+                            <GroupDescriptionPopover description={selectedConversation.description} />
+                            <GroupUsersPopover users={selectedConversation.users} />
+                            {selectedConversation.owner_id == auth.user.id && (
+                                <>
+                                    <div 
+                                        className='tooltip tooltip-left'
+                                        data-tip="Edit Group"
+                                    >
+                                        <button
+                                         onClick={(ev)=> 
+                                            emit(
+                                                "GroupModal.show", selectedConversation
+                                            )
+                                         }
+                                         className='text-gray-400 hover:text-gray-200'>
+                                            <PencilSquareIcon className="w-5 h-5" />
+                                         </button>
+                                         </div>
+                                         <div 
+                                        className='tooltip tooltip-left'
+                                        data-tip="Delete group"
+                                    >
+                                        <button
+                                         onClick={onGroupDelete}
+                                         className='text-gray-400 hover:text-gray-200'>
+                                            <TrashIcon className="w-5 h-5" />
+                                         </button>
+                                         </div>
+
+                                </>
+                            )}
+                        </div>
+                    )}
                 </div>
             )}
         </>
