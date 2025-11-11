@@ -26,16 +26,25 @@ export default function ChatLayout({ children }) {
   const isUserOnline = (userId) => onlineUsers[userId];
 
   const onSearch = (e) => {
-    const search = e.target.value.toLowerCase();
-    setLocalConversation(
-      conversations.filter((conversation) => {
-        return (
-          conversation.name.toLowerCase().includes(search) ||
-          conversation.last_message.toLowerCase().includes(search)
-        );
-      })
-    );
-  };
+  // Ensure we always have a string toLowerCase can run on
+  const search = (e?.target?.value ?? "").toString().toLowerCase().trim();
+
+  // If the search is empty, restore the original conversations list
+  if (!search) {
+    setLocalConversation(Array.isArray(conversations) ? conversations : []);
+    return;
+  }
+
+  setLocalConversation(
+    (Array.isArray(conversations) ? conversations : []).filter((conversation) => {
+      // Defensive guards: use empty string if a field is missing/null
+      const name = (conversation?.name ?? "").toString().toLowerCase();
+      const last = (conversation?.last_message ?? "").toString().toLowerCase();
+
+      return name.includes(search) || last.includes(search);
+    })
+  );
+};
 
   const handleBackToContacts = () => {
     // Navigate back to the dashboard (main chat page)

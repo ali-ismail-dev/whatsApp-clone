@@ -21,3 +21,12 @@ Broadcast::channel('message.group.{groupId}', function (User $user, int $groupId
 Broadcast::channel('message.group.{groupId}', function (User $user, int $groupId) {
     return $user->groups()->where('groups.id', $groupId)->exists() ? $user : null;
 });
+
+Broadcast::channel('group.deleted.{groupId}', function ($user, $groupId) {
+    // Allow any user who is a member of the group to listen for deletion
+    return \App\Models\Group::where('id', $groupId)
+        ->whereHas('users', function($query) use ($user) {
+            $query->where('users.id', $user->id);
+        })
+        ->exists();
+});

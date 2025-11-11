@@ -7,14 +7,21 @@ export default function Toast({  }) {
     const [toasts, setToasts] = useState(null);
 
     useEffect(() => {
-        on("toast.show", (message) => {
-            const uuid = uuidv4();
-            setToasts((prevToasts) => [...prevToasts, { id: uuid, message }]);
-            setTimeout(() => {
-                setToasts((prevToasts) => prevToasts.filter((toast) => toast.id !== uuid));
-            }, 5000);
-        });
-    }, [on]);
+  on("toast.show", (message) => {
+    console.log("🧪 Toast event received:", message);
+    const uuid = uuidv4();
+
+    setToasts((prevToasts) => {
+      console.log("🧪 Previous toasts:", prevToasts);
+      return [...(prevToasts || []), { id: uuid, message }];
+    });
+
+    setTimeout(() => {
+      setToasts((prevToasts) => prevToasts.filter((toast) => toast.id !== uuid));
+    }, 5000);
+  });
+}, [on]);
+
 
     return (
         <div className="toast toast-center toast-top ">

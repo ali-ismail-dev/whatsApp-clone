@@ -11,6 +11,7 @@ import NewMessageNotification from "@/Components/App/NewMessageNotification";
 export default function AuthenticatedLayout({ header, children }) {
     const user = usePage().props.auth.user;
     const conversations = usePage().props.conversations;
+    const currentConversation = usePage().props.conversation;
     const { emit, on } = useEventBus(); // <-- ADDED: 'on' for listening to events
     
     // 1. Local state for conversations to enable real-time removal from sidebar
@@ -96,26 +97,55 @@ export default function AuthenticatedLayout({ header, children }) {
 
     // 3. Event Bus Listener for Group Deletion (Handles sidebar update, toast, and redirection)
     useEffect(() => {
-        const off = on("group.deleted", ({ id, name }) => {
-            // 1. Display success toast
-            emit("toast.show", `Group "${name}" has been permanently deleted.`, 'success');
+  const off = on("group.deleted", ({ id, name }) => {
+    console.log('=== GROUP DELETED EVENT RECEIVED ===');
+    console.log('Deleted group ID:', id);
+    console.log('Deleted group name:', name);
+    // Try multiple ways to determine the currently-open conversation ID:
+    // 1) Inertia prop
+    const propId = currentConversation?.id ?? null;
 
-            // 2. Update the sidebar by filtering out the deleted group
-            setLocalConversations((prev) => 
-                prev.filter((c) => c.id !== id)
-            );
+    // 2) Route params (if your routes use /conversations/:id)
+    // route().params might be available; guard it
+    let routeParamId = null;
+    try {
+      routeParamId =
+        route()?.params && route().params.id
+          ? parseInt(route().params.id)
+          : null;
+    } catch (e) {
+      routeParamId = null;
+    }
 
-            // 3. Check if the user is currently viewing the deleted group
-            const currentConversationId = usePage().props.conversation?.id; 
+    // 3) As a final fallback, parse the URL (assumes URL ends with the id)
+    let urlId = null;
+    try {
+      const parts = window.location.pathname.split("/").filter(Boolean);
+      const last = parts[parts.length - 1];
+      const maybe = parseInt(last);
+      urlId = Number.isInteger(maybe) ? maybe : null;
+    } catch (e) {
+      urlId = null;
+    }
 
-            if (currentConversationId === id) {
-                // If viewing the deleted group, redirect to dashboard
-                router.visit(route("dashboard"));
-            }
-        });
+    const currentId = propId ?? routeParamId ?? urlId;
+    console.log("Resolved current conversation id:", currentId);
 
-        return () => off();
-    }, [usePage().props.conversation]);
+    // 1) show toast
+    emit("toast.show", `Group "${name}" has been permanently deleted.`, "success");
+
+    // 2) update sidebar
+    setLocalConversations((prev) => prev.filter((c) => c.id !== id));
+
+    // 3) redirect if user is currently viewing the deleted group
+    if (currentId !== null && currentId === id) {
+      // use replace to avoid leaving the deleted URL in history
+      router.visit(route("dashboard"), { replace: true });
+    }
+  });
+
+  return () => off();
+}, [currentConversation, on, emit, setLocalConversations]);
 
     return (
         <>

@@ -40,11 +40,17 @@ class DeletGroupJob implements ShouldQueue
             $name = $group->name;
             
             Log::info("Attempting to delete group ID: {$id} ({$name})");
-
+            $group->last_message_id = null;
+                $group->save(); 
+                Log::info("Nullified last_message_id for group ID: {$id}");
             // 2. Clear relationships and messages
             $group->messages()->delete();
             $group->users()->detach();
             
+          
+                
+            
+
             // 3. Delete the group record
             $group->delete();
 
