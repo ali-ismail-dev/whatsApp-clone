@@ -2,36 +2,33 @@ import { useEventBus } from "@/EventBus";
 import { useState, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
 
-export default function Toast({  }) {
-    const { on } = useEventBus();
-    const [toasts, setToasts] = useState(null);
+export default function Toast({}) {
+  const { on } = useEventBus();
+  const [toasts, setToasts] = useState([]); // <-- fixed initial state to empty array
 
-    useEffect(() => {
-  on("toast.show", (message) => {
-    console.log("🧪 Toast event received:", message);
-    const uuid = uuidv4();
-
-    setToasts((prevToasts) => {
-      console.log("🧪 Previous toasts:", prevToasts);
-      return [...(prevToasts || []), { id: uuid, message }];
+  useEffect(() => {
+    const off = on("toast.show", (message) => {
+      console.log("🧪 Toast event received:", message);
+      const uuid = uuidv4();
+      setToasts((prevToasts) => [...(prevToasts || []), { id: uuid, message }]);
+      setTimeout(() => {
+        setToasts((prevToasts) => (prevToasts || []).filter((toast) => toast.id !== uuid));
+      }, 5000);
     });
 
-    setTimeout(() => {
-      setToasts((prevToasts) => prevToasts.filter((toast) => toast.id !== uuid));
-    }, 5000);
-  });
-}, [on]);
+    return () => off();
+  }, [on]);
 
-
-    return (
-        <div className="toast toast-center toast-top ">
-            { toasts && toasts.map((toast) => (
-                <div key={toast.id} className="alert alert-success shadow-lg"> 
-                    <div>
-                        <span>{toast.message}</span>
-                    </div>
-                </div>
-            ))}
-        </div>
-    )
+  return (
+    <div className="toast toast-center toast-top ">
+      {toasts &&
+        toasts.map((toast) => (
+          <div key={toast.id} className="alert alert-success shadow-lg">
+            <div>
+              <span>{toast.message}</span>
+            </div>
+          </div>
+        ))}
+    </div>
+  );
 }

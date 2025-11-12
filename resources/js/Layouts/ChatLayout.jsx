@@ -144,6 +144,26 @@ export default function ChatLayout({ children }) {
   }, [on, selectedConversation]);
 
   useEffect(() => {
+  const offUpdate = on("group.updated", (updated) => {
+    if (!updated || !updated.id) return;
+    setLocalConversation((prev) =>
+      prev ? prev.map((c) => (c.id === updated.id ? { ...c, ...updated } : c)) : prev
+    );
+  });
+
+  const offCreate = on("group.created", (created) => {
+    if (!created || !created.id) return;
+    setLocalConversation((prev) => (prev ? [created, ...prev] : [created]));
+  });
+
+  return () => {
+    offUpdate();
+    offCreate();
+  };
+}, [on]);
+
+
+  useEffect(() => {
     setSortedConversations(
       [...localConversation].sort((a, b) => {
         if (a.blocked_at && b.blocked_at) {

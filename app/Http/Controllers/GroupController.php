@@ -51,7 +51,7 @@ class GroupController extends Controller
         }
 
         // FIX APPLIED: We dispatch the ID, not the full model.
-        DeletGroupJob::dispatch($group->id)->delay(now()->addSeconds(7));
+        DeletGroupJob::dispatch($group->id)->delay(now()->addSeconds(5));
         
         return response()->json([
             'message' => 'Group will be deleted in seconds',

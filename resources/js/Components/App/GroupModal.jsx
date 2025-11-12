@@ -35,92 +35,128 @@ export default function GroupModal({ show = false, onClose = () => {} }) {
   };
 
   // Listen for the event that opens the modal (for create OR edit)
-// Listen for the event that opens the modal (for create OR edit)
-useEffect(() => {
-  const off = on("GroupModal.show", (g) => {
-    console.log("🧪 GroupModal.show payload:", g);
+  useEffect(() => {
+    const off = on("GroupModal.show", (g) => {
+      console.log("🧪 GroupModal.show payload:", g);
 
-    if (!g) {
-      // open empty create form
-      setGroup({});
+      if (!g) {
+        // open empty create form
+        setGroup({});
+        setData({
+          id: "",
+          name: "",
+          description: "",
+          users_ids: [],
+        });
+        return;
+      }
+
+      // populate form for editing
+      setGroup(g || {});
+
+      // Prefer using user_ids (array of IDs) if provided by backend
+      const initialUserIds = Array.isArray(g.user_ids) && g.user_ids.length
+        ? g.user_ids
+        : (Array.isArray(g.users) ? g.users.map(u => u.id) : []);
+
+      // Exclude owner_id (backend expects owner to be added automatically on sync)
+      const usersIdsExcludingOwner = initialUserIds.filter(id => id !== g.owner_id);
+
       setData({
-        id: "",
-        name: "",
-        description: "",
-        users_ids: [],
+        id: g.id || "",
+        name: g.name || "",
+        description: g.description || "",
+        users_ids: usersIdsExcludingOwner,
       });
-      return;
-    }
-
-    // populate form for editing
-    setGroup(g || {});
-
-    // Prefer using user_ids (array of IDs) if provided by backend
-    const initialUserIds = Array.isArray(g.user_ids) && g.user_ids.length
-      ? g.user_ids
-      : (Array.isArray(g.users) ? g.users.map(u => u.id) : []);
-
-    // Exclude owner_id (backend expects owner to be added automatically on sync)
-    const usersIdsExcludingOwner = initialUserIds.filter(id => id !== g.owner_id);
-
-    setData({
-      id: g.id || "",
-      name: g.name || "",
-      description: g.description || "",
-      users_ids: usersIdsExcludingOwner,
     });
-  });
 
-  return () => off();
-}, [on, setData]);
-
+    return () => off();
+  }, [on, setData]);
 
   // Create or update group handler (top-level)
-const createOrUpdateGroup = (e) => {
-  e.preventDefault();
-console.log("🧪 Submitting group data:", data);
-  if (data.id) {
-    // update (uses put)
-    put(route("group.update", data.id), {
-      onSuccess: () => {
-        // close modal first (so UI is clean), then reload Inertia props
-        emit("toast.show", `Group ${data.name} updated successfully`);
-        closeModal();
-        // reload the current page to get fresh props (updated group/users)
-        router.reload();
-      },
-      onError: (err) => {
-        console.error("Update error:", err);
-      },
-    });
-  } else {
-    // create (uses post)
-    post(route("group.store"), {
-      onSuccess: () => {
-        emit("toast.show", `Group ${data.name} created successfully`);
-        closeModal();
-        router.reload();
-      },
-      onError: (err) => {
-        console.error("Create error:", err);
-      },
-    });
-  }
-};
+  const createOrUpdateGroup = (e) => {
+    e.preventDefault();
+    console.log("🧪 Submitting group data:", data);
 
+    if (data.id) {
+      // update (uses put)
+      put(route("group.update", data.id), {
+        onSuccess: () => {
+          // Build an optimistic updated conversation object to update sidebar/client state
+          const updatedConversation = {
+            id: data.id,
+            is_group: true,
+            name: data.name,
+            description: data.description,
+            owner_id: group.owner_id ?? null,
+            users: users.filter((u) => (data.users_ids || []).includes(u.id)),
+            user_ids: data.users_ids || [],
+            last_message: group.last_message ?? null,
+            is_user: false,
+            is_online: null,
+          };
+
+          // Emit updated event so layouts can update their local state
+          emit("group.updated", updatedConversation);
+
+          emit("toast.show", `Group ${data.name} updated successfully`);
+          closeModal();
+
+          // If the user is currently viewing this group's page, do a lightweight replace
+          // to fetch the fresh selectedConversation props for the chat view.
+          try {
+            const path = window.location.pathname || "";
+            if (path.includes(`/group/${data.id}`)) {
+              // replace current route (lightweight navigation) to refresh selectedConversation
+              router.visit(route("chat.group", data.id), { replace: true });
+            }
+          } catch (e) {
+            // ignore navigation errors
+            console.error("replace navigation failed", e);
+          }
+        },
+        onError: (err) => {
+          console.error("Update error:", err);
+        },
+      });
+    } else {
+      // create (uses post)
+      post(route("group.store"), {
+        onSuccess: (page) => {
+          emit("toast.show", `Group ${data.name} created successfully`);
+          closeModal();
+
+          // After creating, navigate to dashboard or update UI — we just reload sidebar via event
+          const createdConversation = {
+            id: page.props?.conversation?.id ?? null,
+            is_group: true,
+            name: data.name,
+            description: data.description,
+            owner_id: page.props?.auth?.user?.id ?? null,
+            users: users.filter((u) => (data.users_ids || []).includes(u.id)),
+            user_ids: data.users_ids || [],
+            last_message: null,
+            is_user: false,
+            is_online: null,
+          };
+          emit("group.created", createdConversation);
+        },
+        onError: (err) => {
+          console.error("Create error:", err);
+        },
+      });
+    }
+  };
 
   // Handler passed to UserPicker
   const handleUserPickerSelect = (selected) => {
-    // selected can be an array (multiple) or a single item depending on the picker config
     if (Array.isArray(selected)) {
       setData("users_ids", selected.map((u) => u.id));
       console.log("🧪 UserPicker selected (array):", selected.map((u) => u.id));
     } else if (selected && selected.id) {
-      // single selection fallback
       setData("users_ids", [selected.id]);
       console.log("🧪 UserPicker selected (single):", selected.id);
     } else {
-      // nothing
       setData("users_ids", []);
       console.log("🧪 UserPicker selected: empty");
     }
@@ -170,7 +206,7 @@ console.log("🧪 Submitting group data:", data);
         <div className="mt-6">
           <InputLabel htmlFor="users_ids" value="Users" />
           <UserPicker
-            value={selectedUserObjects}
+            value={users.filter((u) => (data.users_ids || []).includes(u.id))}
             options={users}
             onSelect={handleUserPickerSelect}
           />

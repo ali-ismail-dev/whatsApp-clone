@@ -94,6 +94,25 @@ export default function AuthenticatedLayout({ header, children }) {
         };
     }, [localConversations]);
 
+// Add this useEffect in AuthenticatedLayout.jsx (near other on(...) handlers)
+useEffect(() => {
+  const off = on("group.updated", (updated) => {
+    if (!updated || !updated.id) return;
+    setLocalConversations((prev) =>
+      prev ? prev.map((c) => (c.id === updated.id ? { ...c, ...updated } : c)) : prev
+    );
+  });
+
+  const offCreate = on("group.created", (created) => {
+    if (!created || !created.id) return;
+    setLocalConversations((prev) => (prev ? [created, ...prev] : [created]));
+  });
+
+  return () => {
+    off();
+    offCreate();
+  };
+}, [on]);
 
     // 3. Event Bus Listener for Group Deletion (Handles sidebar update, toast, and redirection)
     useEffect(() => {
