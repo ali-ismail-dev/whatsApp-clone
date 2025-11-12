@@ -4,6 +4,7 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import { Transition } from '@headlessui/react';
 import { Link, useForm, usePage } from '@inertiajs/react';
+import UserAvatarm from '../../../Components/App/UserAvatar';
 
 export default function UpdateProfileInformation({
     mustVerifyEmail,
@@ -12,16 +13,18 @@ export default function UpdateProfileInformation({
 }) {
     const user = usePage().props.auth.user;
 
-    const { data, setData, patch, errors, processing, recentlySuccessful } =
+    const { data, setData, post, errors, processing, recentlySuccessful } =
         useForm({
             name: user.name,
+            avatar : null,
             email: user.email,
+            _method: 'PATCH',
         });
 
     const submit = (e) => {
         e.preventDefault();
 
-        patch(route('profile.update'));
+        post(route('profile.update'));
     };
 
     return (
@@ -37,6 +40,24 @@ export default function UpdateProfileInformation({
             </header>
 
             <form onSubmit={submit} className="mt-6 space-y-6">
+                <UserAvatarm
+                    user={user}
+                    profile = {true}
+                    className="mx-auto h-20 w-20 object-cover"
+                />
+                <div>
+                    <InputLabel htmlFor="avatar" value="Profile Picture" />
+
+                    <input
+                        id="avatar"
+                        type="file"
+                        className="file-input flex-input-bordered rounded file-input-primary mt-1 block w-full max-w-sm"
+                        onChange={e => setData('avatar', e.target.files[0])}
+                    />
+
+                    <InputError className="mt-2" message={errors.avatar} />
+                </div>
+
                 <div>
                     <InputLabel htmlFor="name" value="Name" />
 
