@@ -242,7 +242,7 @@ export default function ChatLayout({ children }) {
 
         <div className="p-3">
           <TextInput
-            onKeyUp={onSearch}
+            onChange={onSearch}
             placeholder="Search or start new chat"
             className="w-full"
           />
@@ -269,7 +269,7 @@ export default function ChatLayout({ children }) {
         
         {childrenWithProps}
       </main>
-      <GroupModal onClose={() => setShowGroupModal(false)} show={showGroupModal} />
+      <GroupModal onClose={() => setShowGroupModal(false)} show={showGroupModal} onlineUsers={onlineUsers}  />
     </div>
   );
 }

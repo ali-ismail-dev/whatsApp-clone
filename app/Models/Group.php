@@ -61,7 +61,7 @@ class Group extends Model
         'id' => $this->id,
         'is_group' => true,
         'name' => $this->name,
-        // ... other properties ...
+        'description' => $this->description,
         'is_user' => false,
         'owner_id' => $this->owner_id,
         'users' => $this->users()->where('users.id', '!=', $exceptUser->id)->get(),
