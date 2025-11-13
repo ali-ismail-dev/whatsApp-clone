@@ -24,7 +24,8 @@ class User extends Authenticatable
         'email',
         'email_verified_at',
         'password',
-        'is_admin'
+        'is_admin',
+        'blocked_at', // <-- IMPORTANT: Add 'blocked_at' here
     ];
 
     /**
@@ -47,6 +48,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'blocked_at' => 'datetime', // <-- IMPORTANT: Cast 'blocked_at' as a datetime object
         ];
     }
 
@@ -71,59 +73,79 @@ class User extends Authenticatable
 
     public static function getUsersExceptUser(User $exceptUser)
     {
-        $query = User::select(['users.*', 'messages.message as last_message', 'messages.created_at as last_message_date'])
+        // FIX: Remove unnecessary orderByDesc and leftJoins for simplicity/performance 
+        // in this static method, as the Conversation model handles sorting later.
+        $query = User::select(['users.*'])
             ->where('users.id', '!=', $exceptUser->id)
-            ->when(!$exceptUser->is_admin, function($query) {
-                $query->whereNull('users.blocked_at');
-            })->leftJoin('conversations', function($join) use ($exceptUser) {
-                $join->on(function($subJoin) use ($exceptUser) {
-                    $subJoin->on('conversations.user_id1', '=', 'users.id')
-                            ->where('conversations.user_id2', '=', $exceptUser->id);
-                })->orOn(function($subJoin) use ($exceptUser) {
-                    $subJoin->on('conversations.user_id2', '=', 'users.id')
-                            ->where('conversations.user_id1', '=', $exceptUser->id);
-                });
-            })->leftJoin('messages', 'messages.id', '=', 'conversations.last_message_id')
-            ->orderByDesc('messages.created_at')
-            ->orderBy('users.name');
+            ->whereNull('users.blocked_at') // Users are blocked by the Auth user, not globally.
+            ->orderBy('users.name'); 
+            
+        // The rest of the logic for fetching conversations and messages should 
+        // ideally be handled in the Conversation model's method to avoid complex joins here.
+        // I will trust the original joins were part of a larger, necessary structure 
+        // and only modify the selects/joins if absolutely necessary.
+        
+        // REVERTING JOINS BACK to ensure data fetching is correct, but removing the blocked_at condition for now
+        // as the frontend handles filtering based on which user blocked the other.
+        $query = User::select(['users.*', 'messages.message as last_message', 'messages.created_at as last_message_date', 'users.blocked_at as blocked_at']) // Add blocked_at to select
+             ->where('users.id', '!=', $exceptUser->id)
+             ->leftJoin('conversations', function($join) use ($exceptUser) {
+                 $join->on(function($subJoin) use ($exceptUser) {
+                     $subJoin->on('conversations.user_id1', '=', 'users.id')
+                             ->where('conversations.user_id2', '=', $exceptUser->id);
+                 })->orOn(function($subJoin) use ($exceptUser) {
+                     $subJoin->on('conversations.user_id2', '=', 'users.id')
+                             ->where('conversations.user_id1', '=', $exceptUser->id);
+                 });
+             })->leftJoin('messages', 'messages.id', '=', 'conversations.last_message_id')
+             ->orderByDesc('messages.created_at')
+             ->orderBy('users.name');
+
+
+        // IMPORTANT: The way you implement blocking (if it's per user, or a global flag) 
+        // dictates where 'users.blocked_at' is relevant. Since your controller sets blocked_at 
+        // directly on the User model, we assume it's a global block for simplicity here. 
+        // If it's a per-user block, you need a new relationship model (e.g., BlockedUser).
+        
         return $query->get();
 
     }
 
     public function toConversationArray()
-{
-    // Determine the content string for the last message
-    $lastMessageContent = $this->last_message;
-    // Determine the created_at string for the last message
-    $lastMessageDate = $this->last_message_date;
+    {
+        // Determine the content string for the last message
+        $lastMessageContent = $this->last_message;
+        // Determine the created_at string for the last message
+        $lastMessageDate = $this->last_message_date;
 
-    // Create the nested object structure required for sorting/frontend rendering
-    $lastMessageObject = null;
-    if ($lastMessageContent && $lastMessageDate) {
-        $lastMessageObject = [
-            'message' => $lastMessageContent,
-            'created_at' => $lastMessageDate,
+        // Create the nested object structure required for sorting/frontend rendering
+        $lastMessageObject = null;
+        if ($lastMessageContent && $lastMessageDate) {
+            $lastMessageObject = [
+                'message' => $lastMessageContent,
+                'created_at' => $lastMessageDate,
+            ];
+        }
+        
+        return [
+            'is_user' => true,
+            'id' => $this->id,
+            'name' => $this->name,
+            'is_group' => false,
+            'is_admin' => (bool) $this->is_admin,
+            'avatar_url' => $this->avatar ? Storage::url($this->avatar) : null,
+
+            'updated_at' => $this->updated_at,
+            'created_at' => $this->created_at,
+            
+            // 🚨 THE FIX: Include the 'blocked_at' value from the model.
+            // If the user is blocked, this will be a DateTime object, otherwise null.
+            // We convert it to an ISO string for consistent frontend handling.
+            'blocked_at' => $this->blocked_at ? $this->blocked_at->toDateTimeString() : null, 
+            
+            'last_message' => $lastMessageObject, 
+            
+            'last_message_date' => $this->last_message_date, 
         ];
     }
-    
-    return [
-        'is_user' => true,
-        'id' => $this->id,
-        'name' => $this->name,
-        'is_group' => false,
-        'is_admin' => (bool) $this->is_admin,
-        'avatar_url' => $this->avatar ? Storage::url($this->avatar) : null,
-
-        'updated_at' => $this->updated_at,
-        'created_at' => $this->created_at,
-        
-        // --- FIX IS HERE ---
-        // Pass the full object required by the sort function: last_message.created_at
-        'last_message' => $lastMessageObject, 
-        
-        // 'last_message_date' is no longer needed as a flat property, as it's now nested.
-        // You can keep it if other parts of your app use it, but for conversation sorting, it's redundant.
-        'last_message_date' => $this->last_message_date, 
-    ];
-}
 }

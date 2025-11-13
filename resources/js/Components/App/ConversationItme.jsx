@@ -107,47 +107,56 @@ export default function ConversationItem({
 
   return (
     <Link
-      href={
-        conversation.is_group
-          ? route("chat.group", conversation)
-          : route("chat.user", conversation)
-      }
-      preserveState
-      className={
-        "conversation-item flex items-center gap-2 p-2 text-gray-300 transition-all cursor-pointer hover:bg-black/30" +
-        classes +
-        (conversation.is_user && conversation.is_admin ? " pr-2" : " pr-4")
-      }
-    >
-      {conversation.is_user && <UserAvatar user={conversation} online={online} />}
-      {conversation.is_group && <GroupAvatar group={conversation} />}
+  href={
+    conversation.is_group
+      ? route("chat.group", conversation)
+      : route("chat.user", conversation)
+  }
+  preserveState
+  className={
+    "conversation-item flex items-center gap-2 p-2 text-gray-300 transition-all cursor-pointer hover:bg-black/30" +
+    classes +
+    (conversation.is_user && conversation.is_admin ? " pr-2" : " pr-4") +
+    (conversation.is_user && conversation.blocked_at
+      ? " bg-black/30 cursor-not-allowed" // dark background and disabled cursor
+      : "")
+  }
+>
+  {conversation.is_user && <UserAvatar user={conversation} online={online} />}
+  {conversation.is_group && <GroupAvatar group={conversation} />}
 
-      <div
-        className={
-          "flex-1 max-w-full overflow-hidden" +
-          (conversation.is_user && conversation.blocked_at ? " opacity-50" : "")
-        }
-      >
-        <div className="flex gap-1 justify-between items-center">
-          <h3 className="text-sm font-semibold overflow-hidden text-ellipsis whitespace-nowrap">
-            {conversation.name}
-          </h3>
-
-          {lastTime && <span className="text-xs text-gray-400">{lastTime}</span>}
-        </div>
-
-        {lastText && (
-          <p className="text-xs text-gray-400 overflow-hidden text-ellipsis whitespace-nowrap">
-            {lastText}
-          </p>
+  <div
+    className={
+      "flex-1 max-w-full overflow-hidden" +
+      (conversation.is_user && conversation.blocked_at ? " opacity-50" : "")
+    }
+  >
+    <div className="flex gap-1 justify-between items-center">
+      <h3 className="text-sm font-semibold overflow-hidden text-ellipsis whitespace-nowrap">
+        {conversation.name}
+        {conversation.blocked_at && (
+          <span className="ml-1 text-[10px] text-red-400 uppercase font-bold">
+            Blocked
+          </span>
         )}
-      </div>
+      </h3>
 
-      {currentUser.is_admin && conversation.is_user ? (
-        <UserOptionsDropdown conversation={conversation} />
-      ) : (
-        ""
-      )}
-    </Link>
+      {lastTime && <span className="text-xs text-gray-400">{lastTime}</span>}
+    </div>
+
+    {lastText && (
+      <p className="text-xs text-gray-400 overflow-hidden text-ellipsis whitespace-nowrap">
+        {lastText}
+      </p>
+    )}
+  </div>
+
+  {currentUser.is_admin && conversation.is_user ? (
+    <UserOptionsDropdown conversation={conversation} />
+  ) : (
+    ""
+  )}
+</Link>
+
   );
 }

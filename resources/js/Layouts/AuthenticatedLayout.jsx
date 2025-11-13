@@ -7,6 +7,9 @@ import { Link, usePage, router } from "@inertiajs/react"; // <-- ADDED: router i
 import { useState, useEffect } from "react";
 import Toast from "@/Components/App/Toast";
 import NewMessageNotification from "@/Components/App/NewMessageNotification";
+import PrimaryButton from "@/Components/PrimaryButton";
+import { UserPlusIcon } from "@heroicons/react/24/outline";
+import NewUserModal from "@/Components/App/NewUserModal";
 
 export default function AuthenticatedLayout({ header, children }) {
     const user = usePage().props.auth.user;
@@ -19,7 +22,7 @@ export default function AuthenticatedLayout({ header, children }) {
 
     const [showingNavigationDropdown, setShowingNavigationDropdown] =
         useState(false);
-
+    const [showNewUserModal, setShowNewUserModal] = useState(false);
     // Sync local state when the Inertia prop changes (e.g., on page refresh)
     useEffect(() => {
         setLocalConversations(conversations);
@@ -190,7 +193,15 @@ useEffect(() => {
                             </div>
 
                             <div className="hidden sm:ms-6 sm:flex sm:items-center">
-                                <div className="relative ms-3">
+                                <div className="flex relative ms-3">
+
+                                    {user.is_admin && (
+                                        <PrimaryButton onClick={ev=>setShowNewUserModal(true)}>
+                                            <UserPlusIcon className="mr-2 -ml-1 h-5 w-5" />
+                                            Add New User
+                                        </PrimaryButton>
+                                    )}
+
                                     <Dropdown>
                                         <Dropdown.Trigger>
                                             <span className="inline-flex rounded-md">
@@ -330,6 +341,7 @@ useEffect(() => {
             </div>
             <Toast />
             <NewMessageNotification />
+            <NewUserModal show={showNewUserModal} onClose={() => setShowNewUserModal(false)} />
         </>
     );
 }

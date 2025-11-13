@@ -7,6 +7,7 @@ use Illuminate\Foundation\Application;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\UserController;
 
 Route::middleware('auth')->group(function () {
 Route::get('/', [HomeController::class, 'home'])->name('dashboard');
@@ -21,6 +22,12 @@ Route::delete('message/{message}', [MessageController::class, 'destroy'])->name(
 Route::post('/group', [GroupController::class, 'store'])->name('group.store');
 Route::put('/group/{group}', [GroupController::class, 'update'])->name('group.update');
 Route::delete('/group/{group}', [GroupController::class, 'destroy'])->name('group.destroy');
+
+Route::middleware('admin')->group(function () {
+    Route::post('/user',[UserController::class, 'store'])->name('user.store');
+    Route::post('user/change-role/{user}', [UserController::class, 'changeRole'])->name('user.changeRole');
+    Route::post('user/block-unblock/{user}', [UserController::class, 'blockUnBlock'])->name('user.blockUnBlock');
+});
 
 });
 

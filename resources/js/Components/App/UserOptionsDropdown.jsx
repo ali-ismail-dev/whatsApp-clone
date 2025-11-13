@@ -4,14 +4,18 @@ import { EllipsisVerticalIcon } from "@heroicons/react/24/solid";
 import { Menu, Transition } from "@headlessui/react";
 import { Fragment } from "react";
 import axios from "axios";
+import { useEventBus } from "@/EventBus";
 
 export default function UserOptionsDropdown({ conversation }) {
+    const { emit } = useEventBus();
     const changeUserRole = () => {
         if (!conversation.is_user) {
             return;
         }
-       axios.post(route('users.toggleAdmin', conversation.id))
+       axios.post(route('user.changeRole', conversation.id))
         .then(response => {
+            
+            emit ("toast.show", response.data.message);
             console.log(response.data);
         })
         .catch(error => {
@@ -20,18 +24,31 @@ export default function UserOptionsDropdown({ conversation }) {
 
     };
 
-    const onBlockUser = () => {
-        if (!conversation.is_user) {
-            return;
-        }
-         axios.post(route('users.blockUnBlock', conversation.id))
-        .then(response => {
-            console.log(response.data);
-        })
-        .catch(error => {
-            console.error("There was an error!", error);
-        });
-    };
+   const onBlockUser = () => {
+  if (!conversation.is_user) {
+    return;
+  }
+
+
+  axios.post(route("user.blockUnBlock", conversation.id))
+    .then((response) => {
+         console.log("🧪 Block response:", response.data);
+    console.log("🧪 Conversation from response:", response.data.conversation);
+      emit("toast.show", response.data.message);
+
+      // If the server returns the updated conversation, emit an event so layouts can update
+      if (response.data && response.data.conversation) {
+        emit("user.blocked", response.data.conversation);
+      } else {
+        // fallback: emit minimal payload so the listener can react
+        emit("user.blocked", { id: conversation.id, blocked_at: response.data.blocked_at ?? new Date().toISOString() });
+      }
+    })
+    .catch((error) => {
+      console.error("There was an error blocking/unblocking user!", error);
+    });
+};
+
 
     return (
         <div className="relative inline-block text-left">
