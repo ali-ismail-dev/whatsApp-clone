@@ -54,7 +54,7 @@ export default function UserOptionsDropdown({ conversation }) {
         <div className="relative inline-block text-left">
             <Menu as="div" className="relative inline-block text-left">
                 <div>
-                    <Menu.Button className="flex justify-center items-center w-8 h-8 rounded-full hover:bg-black/40">
+                    <Menu.Button className="flex justify-center items-center w-8 h-8 rounded-full hover:bg-slate-600">
                         <EllipsisVerticalIcon className="w-5 h-5 text-gray-400" />
                     </Menu.Button>
                 </div>
@@ -67,7 +67,7 @@ export default function UserOptionsDropdown({ conversation }) {
                     leaveFrom="transform opacity-100 scale-100"
                     leaveTo="transform opacity-0 scale-95"
                 >
-                    <Menu.Items className="absolute right-0 mt-2 w-48 rounded-md bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
+                    <Menu.Items className="absolute right-0 mt-2 w-48 rounded-md bg-gray-900 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
                         <div className="py-1 px-1">
                             <Menu.Item>
                                 {({ active }) => (

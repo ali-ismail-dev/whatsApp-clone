@@ -114,9 +114,8 @@ export default function ConversationItem({
   }
   preserveState
   className={
-    "conversation-item flex items-center gap-2 p-2 text-gray-300 transition-all cursor-pointer hover:bg-black/30" +
+    "conversation-item flex items-center gap-2 p-2 text-gray-300 transition-all cursor-pointer hover:bg-black/20" +
     classes +
-    (conversation.is_user && conversation.is_admin ? " pr-2" : " pr-4") +
     (conversation.is_user && conversation.blocked_at
       ? " bg-black/30 cursor-not-allowed" // dark background and disabled cursor
       : "")
@@ -152,7 +151,9 @@ export default function ConversationItem({
   </div>
 
   {currentUser.is_admin && conversation.is_user ? (
+    <div className="w-8 flex-shrink-0 flex justify-center">
     <UserOptionsDropdown conversation={conversation} />
+  </div>
   ) : (
     ""
   )}
