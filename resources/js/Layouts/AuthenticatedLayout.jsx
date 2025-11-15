@@ -194,14 +194,6 @@ useEffect(() => {
 
                             <div className="hidden sm:ms-6 sm:flex sm:items-center">
                                 <div className="flex relative ms-3">
-
-                                    {user.is_admin && (
-                                        <PrimaryButton onClick={ev=>setShowNewUserModal(true)}>
-                                            <UserPlusIcon className="mr-2 -ml-1 h-5 w-5" />
-                                            Add New User
-                                        </PrimaryButton>
-                                    )}
-
                                     <Dropdown>
                                         <Dropdown.Trigger>
                                             <span className="inline-flex rounded-md">
