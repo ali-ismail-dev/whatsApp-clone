@@ -10,11 +10,13 @@ import { Fragment } from "react";
 import axios from "axios";
 import { useEventBus } from "@/EventBus";
 import { TrashIcon } from "@heroicons/react/24/outline";
+
 export default function UserOptionsDropdown({ conversation }) {
     const { emit } = useEventBus();
 
-    const onBlockUser = () => {
+    const onBlockUser = (close) => {
         if (!conversation.is_user) {
+            close(); // Close even if not a user conversation
             return;
         }
 
@@ -46,12 +48,13 @@ export default function UserOptionsDropdown({ conversation }) {
                     "There was an error blocking/unblocking user!",
                     error,
                 );
+            })
+            .finally(() => {
+                close(); // Close dropdown after operation completes
             });
     };
 
-    const onClearMessages = async (e) => {
-        e.preventDefault();
-
+    const onClearMessages = async (close) => {
         // Show loading toast
         emit("toast.show", "Deleting messages...");
 
@@ -64,6 +67,8 @@ export default function UserOptionsDropdown({ conversation }) {
         } catch (error) {
             console.error("Failed to clear conversation:", error);
             emit("toast.show", "Failed to delete messages");
+        } finally {
+            close(); // Close dropdown regardless of success/error
         }
     };
 
@@ -89,10 +94,7 @@ export default function UserOptionsDropdown({ conversation }) {
                             <Menu.Item>
                                 {({ active, close }) => (
                                     <button
-                                        onClick={() => {
-                                            onBlockUser();
-                                            close(); // closes the dropdown
-                                        }}
+                                        onClick={() => onBlockUser(close)}
                                         className={`${
                                             active
                                                 ? "bg-gray-700 text-white"
@@ -119,10 +121,7 @@ export default function UserOptionsDropdown({ conversation }) {
                             <Menu.Item>
                                 {({ active, close }) => (
                                     <button
-                                        onClick={() => {
-                                            onClearMessages();
-                                            close(); // closes the dropdown
-                                        }}
+                                        onClick={() => onClearMessages(close)}
                                         className={`${active ? "bg-gray-700 text-white" : "text-gray-300"} group flex w-full items-center rounded-md px-2 py-2 text-sm`}
                                     >
                                         <TrashIcon className="w-5 h-5 mr-2" />
