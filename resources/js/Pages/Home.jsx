@@ -95,7 +95,7 @@ function Home({ messages = null, selectedConversation = null, onlineUsers = {} }
                     return;
                 }
 
-                const scrollHeight = messagesCtrRef.current.scrollHeight;
+                const scrollHeight = messagesCtrRef && messagesCtrRef.current.scrollHeight;
                 const scrollTop = messagesCtrRef.current.scrollTop;
                 const clientHeight = messagesCtrRef.current.clientHeight;
                 const tmpScrollFromBottom = scrollHeight - scrollTop - clientHeight;
@@ -142,7 +142,15 @@ function Home({ messages = null, selectedConversation = null, onlineUsers = {} }
             offCreated();
         };
     }, [selectedConversation]);
+useEffect(() => {
+    const offCleared = on("conversation.cleared", ({ conversationId }) => {
+        if (selectedConversation && selectedConversation.id === conversationId) {
+            setMessagesList([]); // clear messages immediately
+        }
+    });
 
+    return () => offCleared();
+}, [on, selectedConversation]);
     useEffect(() => {
         // Scroll to bottom when messages are initially loaded
         setTimeout(() => {

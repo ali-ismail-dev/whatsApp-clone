@@ -150,7 +150,7 @@ export default function ConversationItem({
     )}
   </div>
 
-  {currentUser.is_admin && conversation.is_user ? (
+  {conversation.is_user ? (
     <div className="w-8 flex-shrink-0 flex justify-center">
     <UserOptionsDropdown conversation={conversation} />
   </div>

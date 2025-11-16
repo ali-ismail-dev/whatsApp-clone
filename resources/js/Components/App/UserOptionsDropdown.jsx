@@ -1,54 +1,71 @@
 import { LockOpenIcon } from "@heroicons/react/24/solid";
-import { LockClosedIcon, ShieldCheckIcon, UserIcon,} from "@heroicons/react/24/solid";
+import {
+    LockClosedIcon,
+    ShieldCheckIcon,
+    UserIcon,
+} from "@heroicons/react/24/solid";
 import { EllipsisVerticalIcon } from "@heroicons/react/24/solid";
 import { Menu, Transition } from "@headlessui/react";
 import { Fragment } from "react";
 import axios from "axios";
 import { useEventBus } from "@/EventBus";
-
+import { TrashIcon } from "@heroicons/react/24/outline";
 export default function UserOptionsDropdown({ conversation }) {
     const { emit } = useEventBus();
-    const changeUserRole = () => {
+
+    const onBlockUser = () => {
         if (!conversation.is_user) {
             return;
         }
-       axios.post(route('user.changeRole', conversation.id))
-        .then(response => {
-            
-            emit ("toast.show", response.data.message);
-            console.log(response.data);
-        })
-        .catch(error => {
-            console.error("There was an error!", error);
-        });
 
+        axios
+            .post(route("user.blockUnBlock", conversation.id))
+            .then((response) => {
+                console.log("🧪 Block response:", response.data);
+                console.log(
+                    "🧪 Conversation from response:",
+                    response.data.conversation,
+                );
+                emit("toast.show", response.data.message);
+
+                // If the server returns the updated conversation, emit an event so layouts can update
+                if (response.data && response.data.conversation) {
+                    emit("user.blocked", response.data.conversation);
+                } else {
+                    // fallback: emit minimal payload so the listener can react
+                    emit("user.blocked", {
+                        id: conversation.id,
+                        blocked_at:
+                            response.data.blocked_at ??
+                            new Date().toISOString(),
+                    });
+                }
+            })
+            .catch((error) => {
+                console.error(
+                    "There was an error blocking/unblocking user!",
+                    error,
+                );
+            });
     };
 
-   const onBlockUser = () => {
-  if (!conversation.is_user) {
-    return;
-  }
+    const onClearMessages = async (e) => {
+        e.preventDefault();
 
+        // Show loading toast
+        emit("toast.show", "Deleting messages...");
 
-  axios.post(route("user.blockUnBlock", conversation.id))
-    .then((response) => {
-         console.log("🧪 Block response:", response.data);
-    console.log("🧪 Conversation from response:", response.data.conversation);
-      emit("toast.show", response.data.message);
+        try {
+            await axios.post(route("conversation.clear", conversation.id));
+            emit("conversation.cleared", { conversationId: conversation.id });
 
-      // If the server returns the updated conversation, emit an event so layouts can update
-      if (response.data && response.data.conversation) {
-        emit("user.blocked", response.data.conversation);
-      } else {
-        // fallback: emit minimal payload so the listener can react
-        emit("user.blocked", { id: conversation.id, blocked_at: response.data.blocked_at ?? new Date().toISOString() });
-      }
-    })
-    .catch((error) => {
-      console.error("There was an error blocking/unblocking user!", error);
-    });
-};
-
+            // Show success toast
+            emit("toast.show", "Messages deleted successfully!");
+        } catch (error) {
+            console.error("Failed to clear conversation:", error);
+            emit("toast.show", "Failed to delete messages");
+        }
+    };
 
     return (
         <div className="relative inline-block text-left">
@@ -70,23 +87,28 @@ export default function UserOptionsDropdown({ conversation }) {
                     <Menu.Items className="absolute right-0 mt-2 w-48 rounded-md bg-gray-900 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
                         <div className="py-1 px-1">
                             <Menu.Item>
-                                {({ active }) => (
+                                {({ active, close }) => (
                                     <button
-                                        onClick={onBlockUser}
+                                        onClick={() => {
+                                            onBlockUser();
+                                            close(); // closes the dropdown
+                                        }}
                                         className={`${
-                                            active ? 'bg-gray-700 text-white' : 'text-gray-300'
+                                            active
+                                                ? "bg-gray-700 text-white"
+                                                : "text-gray-300"
                                         } group flex w-full items-center rounded-md px-2 py-2 text-sm`}
                                     >
                                         {conversation.blocked_at && (
                                             <>
-                                            <LockOpenIcon className="w-5 h-5 mr-2" />
-                                            Unblock User
+                                                <LockOpenIcon className="w-5 h-5 mr-2" />
+                                                Unblock User
                                             </>
                                         )}
                                         {!conversation.blocked_at && (
                                             <>
-                                            <LockClosedIcon className="w-5 h-5 mr-2" />
-                                            Block User
+                                                <LockClosedIcon className="w-5 h-5 mr-2" />
+                                                Block User
                                             </>
                                         )}
                                     </button>
@@ -95,32 +117,19 @@ export default function UserOptionsDropdown({ conversation }) {
                         </div>
                         <div className="px-1 py-2">
                             <Menu.Item>
-                                {({ active }) => (
+                                {({ active, close }) => (
                                     <button
-                                        onClick={changeUserRole}
-                                        className={`${
-                                            active ? 'bg-gray-700 text-white' : 'text-gray-300'
-                                        } group flex w-full items-center rounded-md px-2 py-2 text-sm`}
+                                        onClick={() => {
+                                            onClearMessages();
+                                            close(); // closes the dropdown
+                                        }}
+                                        className={`${active ? "bg-gray-700 text-white" : "text-gray-300"} group flex w-full items-center rounded-md px-2 py-2 text-sm`}
                                     >
-                                        {conversation.is_admin && (
-                                            <>
-                                            <UserIcon className="w-5 h-5 mr-2" />
-                                            Revoke Admin
-                                            </>
-                                        )
-                                        }
-
-                                    
-                                        {!conversation.is_admin && (
-                                            <>
-                                            <ShieldCheckIcon className="w-5 h-5 mr-2" />
-                                            Make Admin
-                                            </>
-                                        )}
+                                        <TrashIcon className="w-5 h-5 mr-2" />
+                                        Clear all messages
                                     </button>
                                 )}
-                            </Menu.Item> 
-
+                            </Menu.Item>
                         </div>
                     </Menu.Items>
                 </Transition>
@@ -128,6 +137,3 @@ export default function UserOptionsDropdown({ conversation }) {
         </div>
     );
 }
-
-
-                                            

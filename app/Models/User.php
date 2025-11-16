@@ -6,7 +6,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+
 use Illuminate\Support\Facades\Storage;
+
 
 class User extends Authenticatable
 {
@@ -71,6 +73,7 @@ class User extends Authenticatable
         return $this->sentMessages()->orWhere('receiver_id', $this->id);
     }
 
+
     public static function getUsersExceptUser(User $exceptUser)
     {
         // FIX: Remove unnecessary orderByDesc and leftJoins for simplicity/performance 
@@ -110,6 +113,19 @@ class User extends Authenticatable
         return $query->get();
 
     }
+
+    // contact requests I sent
+public function contactRequestsSent()
+{
+    return $this->hasMany(\App\Models\Contact::class, 'requester_id');
+}
+
+// contact requests I received
+public function contactRequestsReceived()
+{
+    return $this->hasMany(\App\Models\Contact::class, 'requested_id');
+}
+
 
     public function toConversationArray()
     {

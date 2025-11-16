@@ -1,5 +1,5 @@
-// resources/js/Components/App/NewUserModal.jsx
-import { useForm, usePage } from "@inertiajs/react";
+// resources/js/Components/App/NewContactModal.jsx
+import { useForm } from "@inertiajs/react";
 import InputError from "../InputError";
 import InputLabel from "../InputLabel";
 import TextInput from "../TextInput";
@@ -7,17 +7,13 @@ import { useEventBus } from "@/EventBus";
 import Modal from "../../../../vendor/laravel/breeze/stubs/inertia-react/resources/js/Components/Modal.jsx";
 import SecondaryButton from "../SecondaryButton";
 import PrimaryButton from "../PrimaryButton";
-import Checkbox from "../Checkbox";
 
-export default function NewUserModal({ show = false, onClose = () => {} }) {
+export default function NewContactModal({ show = false, onClose = () => {} }) {
   const { emit } = useEventBus();
-  const page = usePage();
-  const currentUser = page.props?.auth?.user ?? {};
 
   const { data, setData, post, processing, errors, reset } = useForm({
     name: "",
     email: "",
-    is_admin: false,
   });
 
   // Helper to close modal and reset form
@@ -26,22 +22,26 @@ export default function NewUserModal({ show = false, onClose = () => {} }) {
     onClose();
   };
 
-  // Create user handler
+  // Submit: send contact request
   const submit = (e) => {
     e.preventDefault();
+
     // small client guard
-    if (!data.name || !data.email) {
-      emit("toast.show", "Please provide name and email");
+    if (!data.name?.trim() || !data.email?.trim()) {
+      emit("toast.show", "Please provide both name and email.");
       return;
     }
 
-    post(route("user.store"), {
-      onSuccess: () => {
-        emit("toast.show", `User ${data.name} created successfully`);
+    post(route("contacts.store"), {
+      onSuccess: (page) => {
+        emit("toast.show", `Contact request sent to ${data.email}`);
+        // helpful event so other parts can update (notification bell, sidebar)
+        emit("contact.request.sent", { email: data.email, name: data.name });
         closeModal();
       },
-      onError: () => {
-        // leave errors to show via InputError
+      onError: (err) => {
+        // errors will be shown by InputError components
+        console.error("Contact request failed", err);
       },
     });
   };
@@ -50,11 +50,15 @@ export default function NewUserModal({ show = false, onClose = () => {} }) {
     <Modal show={show} onClose={closeModal}>
       <form onSubmit={submit} className="p-6 overflow-y-auto">
         <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-          Create New User
+          Add Contact
         </h2>
 
+        <p className="text-sm text-gray-500 mt-2">
+          Provide a display name (this will be how you see the contact) and the email of the user on the platform.
+        </p>
+
         <div className="mt-6">
-          <InputLabel htmlFor="name" value="Name" />
+          <InputLabel htmlFor="name" value="Display name" />
           <TextInput
             id="name"
             type="text"
@@ -78,28 +82,15 @@ export default function NewUserModal({ show = false, onClose = () => {} }) {
             value={data.email}
             className="mt-1 block w-full"
             onChange={(e) => setData("email", e.target.value)}
+            required
           />
           <InputError message={errors.email} className="mt-2" />
         </div>
 
-        {/* Show admin checkbox only for admin users (keeps ability but hides it from normal users) */}
-        {currentUser?.is_admin && (
-          <div className="mt-6 flex items-center">
-            <Checkbox
-              name="is_admin"
-              checked={data.is_admin}
-              onChange={(e) => setData("is_admin", e.target.checked)}
-            />
-            <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
-              Is Admin
-            </span>
-          </div>
-        )}
-
         <div className="mt-6 flex justify-end">
           <SecondaryButton onClick={closeModal}>Cancel</SecondaryButton>
           <PrimaryButton className="ml-3" disabled={processing}>
-            Create
+            Send Request
           </PrimaryButton>
         </div>
       </form>
