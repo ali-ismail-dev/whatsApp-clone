@@ -2,23 +2,16 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\DB; // <-- ADDED: fix "Class App\Models\DB not found"
+use Carbon\Carbon;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
     protected $fillable = [
         'name',
         'avatar',
@@ -26,34 +19,23 @@ class User extends Authenticatable
         'email_verified_at',
         'password',
         'is_admin',
-        'blocked_at', // <-- IMPORTANT: Add 'blocked_at' here
+        'blocked_at',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-            'blocked_at' => 'datetime', // <-- IMPORTANT: Cast 'blocked_at' as a datetime object
-        ];
-    }
+    // <-- correct casts property so Eloquent returns date fields as Carbon instances
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+        'blocked_at' => 'datetime',
+    ];
 
-    public function groups(){
+    public function groups()
+    {
         return $this->belongsToMany(Group::class, 'group_users');
     }
 
@@ -72,15 +54,46 @@ class User extends Authenticatable
         return $this->sentMessages()->orWhere('receiver_id', $this->id);
     }
 
-
     public static function getUsersExceptUser(User $exceptUser)
-{
-    $isAdmin = $exceptUser->is_admin;
+    {
+        $isAdmin = $exceptUser->is_admin;
 
-    // For admins: show all users (current behavior)
-    if ($isAdmin) {
+        // For admins: show all users
+        if ($isAdmin) {
+            $query = User::select(['users.*', 'messages.message as last_message', 'messages.created_at as last_message_date', 'users.blocked_at as blocked_at'])
+                ->where('users.id', '!=', $exceptUser->id)
+                ->leftJoin('conversations', function($join) use ($exceptUser) {
+                    $join->on(function($subJoin) use ($exceptUser) {
+                        $subJoin->on('conversations.user_id1', '=', 'users.id')
+                                ->where('conversations.user_id2', '=', $exceptUser->id);
+                    })->orOn(function($subJoin) use ($exceptUser) {
+                        $subJoin->on('conversations.user_id2', '=', 'users.id')
+                                ->where('conversations.user_id1', '=', $exceptUser->id);
+                    });
+                })
+                ->leftJoin('messages', 'messages.id', '=', 'conversations.last_message_id')
+                ->orderByDesc('messages.created_at')
+                ->orderBy('users.name');
+
+            return $query->get();
+        }
+
+        // For non-admins: show only accepted contacts
         $query = User::select(['users.*', 'messages.message as last_message', 'messages.created_at as last_message_date', 'users.blocked_at as blocked_at'])
             ->where('users.id', '!=', $exceptUser->id)
+            ->join('contacts', function($join) use ($exceptUser) {
+                $join->on(function($subJoin) use ($exceptUser) {
+                    $subJoin->on('contacts.requested_id', '=', 'users.id')
+                            ->where('contacts.requester_id', '=', $exceptUser->id);
+                })->orOn(function($subJoin) use ($exceptUser) {
+                    $subJoin->on('contacts.requester_id', '=', 'users.id')
+                            ->where('contacts.requested_id', '=', $exceptUser->id);
+                });
+            })
+            ->where(function($q) {
+                $q->where('contacts.status', 'accepted')
+                  ->orWhereNotNull('contacts.accepted_at');
+            })
             ->leftJoin('conversations', function($join) use ($exceptUser) {
                 $join->on(function($subJoin) use ($exceptUser) {
                     $subJoin->on('conversations.user_id1', '=', 'users.id')
@@ -93,73 +106,71 @@ class User extends Authenticatable
             ->leftJoin('messages', 'messages.id', '=', 'conversations.last_message_id')
             ->orderByDesc('messages.created_at')
             ->orderBy('users.name');
-            
+
         return $query->get();
     }
 
-    // For non-admins: show only accepted contacts
-    $query = User::select(['users.*', 'messages.message as last_message', 'messages.created_at as last_message_date', 'users.blocked_at as blocked_at'])
-        ->where('users.id', '!=', $exceptUser->id)
-        ->join('contacts', function($join) use ($exceptUser) {
-            $join->on(function($subJoin) use ($exceptUser) {
-                // Contact where current user is requester
-                $subJoin->on('contacts.requested_id', '=', 'users.id')
-                        ->where('contacts.requester_id', '=', $exceptUser->id);
-            })->orOn(function($subJoin) use ($exceptUser) {
-                // Contact where current user is requested
-                $subJoin->on('contacts.requester_id', '=', 'users.id')
-                        ->where('contacts.requested_id', '=', $exceptUser->id);
-            });
-        })
-        ->where(function($q) {
-            // Only accepted contacts
-            $q->where('contacts.status', 'accepted')
-              ->orWhereNotNull('contacts.accepted_at');
-        })
-        ->leftJoin('conversations', function($join) use ($exceptUser) {
-            $join->on(function($subJoin) use ($exceptUser) {
-                $subJoin->on('conversations.user_id1', '=', 'users.id')
-                        ->where('conversations.user_id2', '=', $exceptUser->id);
-            })->orOn(function($subJoin) use ($exceptUser) {
-                $subJoin->on('conversations.user_id2', '=', 'users.id')
-                        ->where('conversations.user_id1', '=', $exceptUser->id);
-            });
-        })
-        ->leftJoin('messages', 'messages.id', '=', 'conversations.last_message_id')
-        ->orderByDesc('messages.created_at')
-        ->orderBy('users.name');
+    public function toConversationArray()
+    {
+        $lastMessageContent = $this->last_message ?? null;
+        $rawLastMessageDate = $this->last_message_date ?? null;
 
-    return $query->get();
-}
+        $lastMessageObject = null;
+        $lastMessageIso = null;
 
-   public function toConversationArray()
-{
-    // Use the fields from the query (last_message, last_message_date)
-    $lastMessageContent = $this->last_message;
-    $lastMessageDate = $this->last_message_date;
+        if ($rawLastMessageDate) {
+            try {
+                // If it's already a Carbon instance
+                if ($rawLastMessageDate instanceof Carbon) {
+                    $dt = $rawLastMessageDate;
+                } else {
+                    $str = (string) $rawLastMessageDate;
 
-    // Create the nested object structure
-    $lastMessageObject = null;
-    if ($lastMessageContent && $lastMessageDate) {
-        $lastMessageObject = [
-            'message' => $lastMessageContent,
-            'created_at' => $lastMessageDate,
+                    // If the string looks like an ISO timestamp with timezone info, parse it directly
+                    if (strpos($str, 'T') !== false || strpos($str, '+') !== false || strpos($str, 'Z') !== false) {
+                        $dt = Carbon::parse($str); // will respect offset if present
+                    } else {
+                        // Otherwise it's likely "Y-m-d H:i:s" from DB -> treat as UTC explicitly
+                        $dt = Carbon::createFromFormat('Y-m-d H:i:s', $str, 'UTC');
+                    }
+                }
+
+                // Convert to application timezone for display (so it contains offset)
+                $appTz = config('app.timezone') ?? date_default_timezone_get();
+                $dt = $dt->setTimezone($appTz);
+
+                // Use ISO-8601 string (includes timezone offset). Frontend JS will parse this correctly.
+                $lastMessageIso = $dt->toIso8601String();
+
+            } catch (\Exception $e) {
+                // fallback: keep original string
+                $lastMessageIso = (string) $rawLastMessageDate;
+            }
+        }
+
+        if ($lastMessageContent && $lastMessageIso) {
+            $lastMessageObject = [
+                'message' => $lastMessageContent,
+                'created_at' => $lastMessageIso,
+            ];
+        }
+
+        return [
+            'is_user' => true,
+            'id' => $this->id,
+            'name' => $this->name,
+            'is_group' => false,
+            'is_admin' => (bool) $this->is_admin,
+            'avatar_url' => $this->avatar ? Storage::url($this->avatar) : null,
+
+            'updated_at' => $this->updated_at,
+            'created_at' => $this->created_at,
+
+            'blocked_at' => $this->blocked_at ? ($this->blocked_at instanceof Carbon ? $this->blocked_at->toDateTimeString() : (string) $this->blocked_at) : null,
+
+            'last_message' => $lastMessageObject,
+            'last_message_date' => $lastMessageIso,
+            'last_message_time' => $lastMessageIso,
         ];
     }
-    
-    return [
-        'is_user' => true,
-        'id' => $this->id,
-        'name' => $this->name,
-        'is_group' => false,
-        'is_admin' => (bool) $this->is_admin,
-        'avatar_url' => $this->avatar ? Storage::url($this->avatar) : null,
-        'updated_at' => $this->updated_at,
-        'created_at' => $this->created_at,
-        'blocked_at' => $this->blocked_at ? $this->blocked_at->toDateTimeString() : null, 
-        'last_message' => $lastMessageObject,
-        'last_message_date' => $lastMessageDate,
-        'last_message_time' => $lastMessageDate, // Add this for the frontend
-    ];
-}
 }

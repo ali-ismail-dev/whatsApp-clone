@@ -16,6 +16,16 @@ export default function AuthenticatedLayout({ header, children }) {
     const currentConversation = usePage().props.conversation;
     const { emit, on } = useEventBus();
 
+    // Notifications state lifted up to parent component
+    const initialNotifications = usePage().props.notifications || [];
+    const [notifications, setNotifications] = useState(initialNotifications.slice(0, 20));
+    const [unreadCount, setUnreadCount] = useState(notifications.length);
+
+    // Update unreadCount when notifications change
+    useEffect(() => {
+        setUnreadCount(notifications.length);
+    }, [notifications]);
+
     // Local state for conversations to enable real-time removal from sidebar
     const [localConversations, setLocalConversations] = useState(conversations);
     const [showingNavigationDropdown, setShowingNavigationDropdown] = useState(false);
@@ -29,6 +39,25 @@ export default function AuthenticatedLayout({ header, children }) {
         const off = on("contact.request.accepted", (data) => {
             if (!data) return;
             router.visit(route("chat.user", { user: data.requester_id }));
+        });
+        return () => off();
+    }, [on]);
+
+    // Listen for live message notifications and update the shared state
+    useEffect(() => {
+        const off = on("newMessageNotification", (payload) => {
+            const item = {
+                id: `live-${Date.now()}`,
+                type: "MessageReceived",
+                data: {
+                    conversation_type: payload.group_id ? "group" : "user",
+                    conversation_id: payload.group_id || payload.user?.id,
+                    message_preview: payload.message,
+                    sender: payload.user,
+                },
+                created_at: new Date().toISOString(),
+            };
+            setNotifications((prev) => [item, ...prev].slice(0, 20));
         });
         return () => off();
     }, [on]);
@@ -173,8 +202,12 @@ export default function AuthenticatedLayout({ header, children }) {
                             {/* RIGHT SIDE: notifications, add contact, user dropdown */}
                             <div className="hidden sm:ms-6 sm:flex sm:items-center">
                               <div className="flex items-center gap-3">
-                                {/* Notification bell */}
-                                <NotificationBell />
+                                {/* Notification bell for desktop */}
+                                <NotificationBell 
+                                  notifications={notifications}
+                                  setNotifications={setNotifications}
+                                  unreadCount={unreadCount}
+                                />
 
                                 {/* user dropdown */}
                                 <div className="flex relative ms-3">
@@ -206,7 +239,11 @@ export default function AuthenticatedLayout({ header, children }) {
                             <div className="-me-2 flex items-center sm:hidden">
                                 {/* Notification bell for mobile */}
                                 <div className="me-3">
-                                    <NotificationBell />
+                                    <NotificationBell 
+                                      notifications={notifications}
+                                      setNotifications={setNotifications}
+                                      unreadCount={unreadCount}
+                                    />
                                 </div>
                                 
                                 <button

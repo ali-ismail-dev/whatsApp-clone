@@ -1,19 +1,13 @@
 import { Menu, Transition } from "@headlessui/react";
 import { BellIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import { Fragment, useState, useMemo, useEffect } from "react";
+import { Fragment, useMemo } from "react";
 import { usePage, router } from "@inertiajs/react";
 import axios from "axios";
 import { useEventBus } from "@/EventBus";
 
-export default function NotificationBell() {
-  const { on, emit } = useEventBus();
+export default function NotificationBell({ notifications, setNotifications, unreadCount }) {
+  const { emit } = useEventBus();
   const { props } = usePage();
-  const initialNotifications = props.notifications || [];
-
-  // local copy for UI updates
-  const [notifications, setNotifications] = useState(initialNotifications.slice(0, 20));
-
-  const unreadCount = useMemo(() => notifications.length, [notifications]);
 
   const removeLocal = (id) => setNotifications((prev) => prev.filter((n) => n.id !== id));
 
@@ -113,25 +107,6 @@ export default function NotificationBell() {
       console.error("Failed to open conversation:", e);
     }
   };
-
-  // Listen for live message notifications
-  useEffect(() => {
-    const off = on("newMessageNotification", (payload) => {
-      const item = {
-        id: `live-${Date.now()}`,
-        type: "MessageReceived",
-        data: {
-          conversation_type: payload.group_id ? "group" : "user",
-          conversation_id: payload.group_id || payload.user?.id,
-          message_preview: payload.message,
-          sender: payload.user,
-        },
-        created_at: new Date().toISOString(),
-      };
-      setNotifications((prev) => [item, ...prev].slice(0, 20));
-    });
-    return () => off();
-  }, [on]);
 
   return (
     <div className="relative">
