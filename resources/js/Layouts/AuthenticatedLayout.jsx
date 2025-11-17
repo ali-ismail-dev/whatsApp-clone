@@ -118,7 +118,7 @@ export default function AuthenticatedLayout({ header, children }) {
     // Group deletion handler (keeps previous logic)
     useEffect(() => {
       const off = on("group.deleted", ({ id, name }) => {
-        emit("toast.show", { message: `Group "${name}" deleted successfully`, type: "success", delay: 1000 });
+        emit("toast.show", { message: `Group "${name}" deleted successfully`, type: "success", delay: 5000 });
         setLocalConversations((prev) => prev.filter((c) => c.id !== id));
         // If currently viewing deleted group, back to dashboard
         let propId = currentConversation?.id ?? null;

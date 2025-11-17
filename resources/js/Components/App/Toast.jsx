@@ -49,7 +49,7 @@ export default function Toast() {
       if (!loading) {
         setTimeout(() => {
           setToasts((prev) => (prev || []).filter((t) => t.id !== id));
-        }, 7000); // increase duration slightly for readability
+        }, 5000); // increase duration slightly for readability
       }
     };
 

@@ -70,6 +70,7 @@ export default function UserOptionsDropdown({ conversation }) {
             emit("toast.show", {
                 message: "Messages deleted successfully",
                 type: "success",
+                delay: 5000
             });
         } catch (error) {
             console.error("Failed to clear conversation:", error);
