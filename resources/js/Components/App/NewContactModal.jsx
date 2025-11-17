@@ -35,12 +35,12 @@ export default function NewContactModal({ show = false, onClose = () => {} }) {
 
     // client guard
     if (!data.name?.trim() || !data.email?.trim()) {
-      emit("toast.show", "Please provide both name and email.", "error");
+      emit("toast.show", { message: "Name and email are required", type: "error" });
       return;
     }
 
     // show a transient UI clue that request is being sent
-    emit("toast.show", "Sending contact request...", "info");
+    emit("toast.show", { message: "Sending request...", type: "info", loading: true });
 
     try {
       const response = await axios.post(route("contacts.store"), {
@@ -55,7 +55,7 @@ export default function NewContactModal({ show = false, onClose = () => {} }) {
       const lower = String(msg).toLowerCase();
       const type = lower.includes("already") || lower.includes("pending") ? "info" : "success";
 
-      emit("toast.show", msg, type);
+      emit("toast.show", { message: msg, type });
 
       // Notify other UI pieces (sidebar, notifications) that request was sent
       emit("contact.request.sent", { email: data.email, name: data.name });
@@ -80,20 +80,20 @@ export default function NewContactModal({ show = false, onClose = () => {} }) {
           setErrors(flattened);
 
           // Show a short toast as well
-          emit("toast.show", "Please fix the highlighted errors.", "error");
+          emit("toast.show", { message: "Request failed", type: "error" });
           return;
         }
 
         // Known application message (e.g., 404 user not found, 409 conflict)
         const msg = body.message || "Request failed";
         const t = status >= 500 ? "error" : (status === 404 ? "error" : (status === 409 ? "info" : "info"));
-        emit("toast.show", msg, t);
+        emit("toast.show", { message: msg, type: t });
         return;
       }
 
       // Network / unknown error
       console.error("Contact request failed", err);
-      emit("toast.show", "Network error. Please try again.", "error");
+      emit("toast.show", { message: "Request failed", type: "error" });
     }
   };
 

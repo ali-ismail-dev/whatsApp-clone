@@ -28,7 +28,11 @@ export default function UserOptionsDropdown({ conversation }) {
                     "🧪 Conversation from response:",
                     response.data.conversation,
                 );
-                emit("toast.show", response.data.message);
+                emit("toast.show", {
+                    message: response.data.message,
+                    type: "success",
+                    delay: 300,
+                });
 
                 // If the server returns the updated conversation, emit an event so layouts can update
                 if (response.data && response.data.conversation) {
@@ -56,17 +60,23 @@ export default function UserOptionsDropdown({ conversation }) {
 
     const onClearMessages = async (close) => {
         // Show loading toast
-        emit("toast.show", "Deleting messages...");
+        emit("toast.show", { message: "Deleting messages...", type: "info" });
 
         try {
             await axios.post(route("conversation.clear", conversation.id));
             emit("conversation.cleared", { conversationId: conversation.id });
 
             // Show success toast
-            emit("toast.show", "Messages deleted successfully!");
+            emit("toast.show", {
+                message: "Messages deleted successfully",
+                type: "success",
+            });
         } catch (error) {
             console.error("Failed to clear conversation:", error);
-            emit("toast.show", "Failed to delete messages");
+            emit("toast.show", {
+                message: "Failed to clear messages",
+                type: "error"
+            });
         } finally {
             close(); // Close dropdown regardless of success/error
         }

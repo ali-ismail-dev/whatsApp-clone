@@ -99,9 +99,8 @@ export default function GroupModal({ show = false, onClose = () => {} }) {
           // Emit updated event so layouts can update their local state
           emit("group.updated", updatedConversation);
 
-          emit("toast.show", `Group ${data.name} updated successfully`);
+          emit("toast.show", { message:  `Group ${data.name} updated successfully`, type: "success", delay: 300 });
           closeModal();
-
           // If the user is currently viewing this group's page, do a lightweight replace
           // to fetch the fresh selectedConversation props for the chat view.
           try {
@@ -123,7 +122,7 @@ export default function GroupModal({ show = false, onClose = () => {} }) {
       // create (uses post)
       post(route("group.store"), {
         onSuccess: (page) => {
-          emit("toast.show", `Group ${data.name} created successfully`);
+          emit("toast.show", { message: `Group ${data.name} created successfully`, type: "success", delay: 300 });
           closeModal();
 
           // After creating, navigate to dashboard or update UI — we just reload sidebar via event
