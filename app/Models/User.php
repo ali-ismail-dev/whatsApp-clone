@@ -6,9 +6,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-
 use Illuminate\Support\Facades\Storage;
-
+use Illuminate\Support\Facades\DB; // <-- ADDED: fix "Class App\Models\DB not found"
 
 class User extends Authenticatable
 {
@@ -75,57 +74,63 @@ class User extends Authenticatable
 
 
     public static function getUsersExceptUser(User $exceptUser)
-    {
-        // FIX: Remove unnecessary orderByDesc and leftJoins for simplicity/performance 
-        // in this static method, as the Conversation model handles sorting later.
-        $query = User::select(['users.*'])
+{
+    $isAdmin = $exceptUser->is_admin;
+
+    // For admins: show all users (current behavior)
+    if ($isAdmin) {
+        $query = User::select(['users.*', 'messages.message as last_message', 'messages.created_at as last_message_date', 'users.blocked_at as blocked_at'])
             ->where('users.id', '!=', $exceptUser->id)
-            ->whereNull('users.blocked_at') // Users are blocked by the Auth user, not globally.
-            ->orderBy('users.name'); 
-            
-        // The rest of the logic for fetching conversations and messages should 
-        // ideally be handled in the Conversation model's method to avoid complex joins here.
-        // I will trust the original joins were part of a larger, necessary structure 
-        // and only modify the selects/joins if absolutely necessary.
-        
-        // REVERTING JOINS BACK to ensure data fetching is correct, but removing the blocked_at condition for now
-        // as the frontend handles filtering based on which user blocked the other.
-        $query = User::select(['users.*', 'messages.message as last_message', 'messages.created_at as last_message_date', 'users.blocked_at as blocked_at']) // Add blocked_at to select
-             ->where('users.id', '!=', $exceptUser->id)
-             ->leftJoin('conversations', function($join) use ($exceptUser) {
-                 $join->on(function($subJoin) use ($exceptUser) {
-                     $subJoin->on('conversations.user_id1', '=', 'users.id')
-                             ->where('conversations.user_id2', '=', $exceptUser->id);
-                 })->orOn(function($subJoin) use ($exceptUser) {
-                     $subJoin->on('conversations.user_id2', '=', 'users.id')
-                             ->where('conversations.user_id1', '=', $exceptUser->id);
-                 });
-             })->leftJoin('messages', 'messages.id', '=', 'conversations.last_message_id')
-             ->orderByDesc('messages.created_at')
-             ->orderBy('users.name');
+            ->leftJoin('conversations', function($join) use ($exceptUser) {
+                $join->on(function($subJoin) use ($exceptUser) {
+                    $subJoin->on('conversations.user_id1', '=', 'users.id')
+                            ->where('conversations.user_id2', '=', $exceptUser->id);
+                })->orOn(function($subJoin) use ($exceptUser) {
+                    $subJoin->on('conversations.user_id2', '=', 'users.id')
+                            ->where('conversations.user_id1', '=', $exceptUser->id);
+                });
+            })
+            ->leftJoin('messages', 'messages.id', '=', 'conversations.last_message_id')
+            ->orderByDesc('messages.created_at')
+            ->orderBy('users.name');
 
-
-        // IMPORTANT: The way you implement blocking (if it's per user, or a global flag) 
-        // dictates where 'users.blocked_at' is relevant. Since your controller sets blocked_at 
-        // directly on the User model, we assume it's a global block for simplicity here. 
-        // If it's a per-user block, you need a new relationship model (e.g., BlockedUser).
-        
         return $query->get();
-
     }
 
-    // contact requests I sent
-public function contactRequestsSent()
-{
-    return $this->hasMany(\App\Models\Contact::class, 'requester_id');
-}
+    // For non-admins: show only accepted contacts
+    $query = User::select(['users.*', 'messages.message as last_message', 'messages.created_at as last_message_date', 'users.blocked_at as blocked_at'])
+        ->where('users.id', '!=', $exceptUser->id)
+        ->join('contacts', function($join) use ($exceptUser) {
+            $join->on(function($subJoin) use ($exceptUser) {
+                // Contact where current user is requester
+                $subJoin->on('contacts.requested_id', '=', 'users.id')
+                        ->where('contacts.requester_id', '=', $exceptUser->id);
+            })->orOn(function($subJoin) use ($exceptUser) {
+                // Contact where current user is requested
+                $subJoin->on('contacts.requester_id', '=', 'users.id')
+                        ->where('contacts.requested_id', '=', $exceptUser->id);
+            });
+        })
+        ->where(function($q) {
+            // Only accepted contacts
+            $q->where('contacts.status', 'accepted')
+              ->orWhereNotNull('contacts.accepted_at');
+        })
+        ->leftJoin('conversations', function($join) use ($exceptUser) {
+            $join->on(function($subJoin) use ($exceptUser) {
+                $subJoin->on('conversations.user_id1', '=', 'users.id')
+                        ->where('conversations.user_id2', '=', $exceptUser->id);
+            })->orOn(function($subJoin) use ($exceptUser) {
+                $subJoin->on('conversations.user_id2', '=', 'users.id')
+                        ->where('conversations.user_id1', '=', $exceptUser->id);
+            });
+        })
+        ->leftJoin('messages', 'messages.id', '=', 'conversations.last_message_id')
+        ->orderByDesc('messages.created_at')
+        ->orderBy('users.name');
 
-// contact requests I received
-public function contactRequestsReceived()
-{
-    return $this->hasMany(\App\Models\Contact::class, 'requested_id');
+    return $query->get();
 }
-
 
     public function toConversationArray()
     {

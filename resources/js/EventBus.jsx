@@ -1,4 +1,3 @@
-// resources/js/EventBus.js
 import React from "react";
 
 export const EventBusContext = React.createContext();
@@ -7,16 +6,20 @@ export function EventBusProvider({ children }) {
   // use a ref to hold the listeners map (stable across renders)
   const listenersRef = React.useRef({});
 
-  const emit = (name, data) => {
+  // 🛑 FIX: Use spread operator (...args) to capture and pass ALL arguments 
+  // following the event 'name'. This ensures the message AND the type are passed.
+  const emit = (name, ...args) => {
     const arr = listenersRef.current[name];
     if (!arr || arr.length === 0) return;
+    
     // call listeners in a safe copy in case someone unsubscribes during emit
     [...arr].forEach((cb) => {
       try {
-        cb(data);
+        // Pass all captured arguments to the callback
+        cb(...args);
       } catch (e) {
         // don't let one listener break others
-        // optionally: console.error("EventBus listener error", e);
+        console.error("EventBus listener error", e);
       }
     });
   };
