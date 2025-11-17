@@ -18,7 +18,7 @@ export default function NotificationBell() {
   const removeLocal = (id) => setNotifications((prev) => prev.filter((n) => n.id !== id));
 
   // Mark a single notification read
-const markRead = async (id) => {
+  const markRead = async (id) => {
     // 1. Check for synthetic (live) IDs
     if (String(id).startsWith("live-")) {
         // If it's a live-only notification, just remove it locally
@@ -33,7 +33,7 @@ const markRead = async (id) => {
     } catch (e) {
         console.error("Failed to mark notification read:", e);
     }
-};
+  };
 
   // Mark all as read
   const markAllRead = async () => {
@@ -45,8 +45,8 @@ const markRead = async (id) => {
     }
   };
 
-// Accept a contact request
-const acceptContactRequest = async (notification) => {
+  // Accept a contact request
+  const acceptContactRequest = async (notification) => {
     const requestId = notification.data?.request_id; // Get request ID safely
     
     // --- SAFETY CHECK (Kept from previous fix) ---
@@ -66,10 +66,10 @@ const acceptContactRequest = async (notification) => {
     } catch (e) {
         console.error("Failed to accept contact request:", e);
     }
-};
+  };
 
-// Reject a contact request
-const rejectContactRequest = async (notification) => {
+  // Reject a contact request
+  const rejectContactRequest = async (notification) => {
     const requestId = notification.data?.request_id; // Get request ID safely
 
     // Add similar safety check for reject
@@ -88,32 +88,31 @@ const rejectContactRequest = async (notification) => {
     } catch (e) {
         console.error("Failed to reject contact request:", e);
     }
-};
+  };
+
   // Open conversation for message notification
-const openConversationFromNotification = async (n) => {
-  try {
-    if (n.type === "MessageReceived") {
-      const convType = n.data.conversation_type; // "group" or "user"
-      const convId = n.data.conversation_id;
-      const routeName = convType === "group" ? "chat.group" : "chat.user";
-      
-      await axios.post(route("notifications.read", n.id));
-      removeLocal(n.id);
-      
-      // Use the correct parameter names based on your routes
-      if (convType === "group") {
-        router.visit(route("chat.group", { group: convId }), { preserveState: false });
+  const openConversationFromNotification = async (n) => {
+    try {
+      if (n.type === "MessageReceived") {
+        const convType = n.data.conversation_type; // "group" or "user"
+        const convId = n.data.conversation_id;
+        const routeName = convType === "group" ? "chat.group" : "chat.user";
+
+        await markRead(n.id); // ✅ safe for live and DB notifications
+
+        // Navigate
+        if (convType === "group") {
+          router.visit(route("chat.group", { group: convId }), { preserveState: false });
+        } else {
+          router.visit(route("chat.user", { user: convId }), { preserveState: false });
+        }
       } else {
-        router.visit(route("chat.user", { user: convId }), { preserveState: false });
+        await markRead(n.id);
       }
-    } else {
-      await axios.post(route("notifications.read", n.id));
-      removeLocal(n.id);
+    } catch (e) {
+      console.error("Failed to open conversation:", e);
     }
-  } catch (e) {
-    console.error("Failed to open conversation:", e);
-  }
-};
+  };
 
   // Listen for live message notifications
   useEffect(() => {
@@ -137,73 +136,127 @@ const openConversationFromNotification = async (n) => {
   return (
     <div className="relative">
       <Menu as="div" className="relative inline-block text-left">
-        <div>
-          <Menu.Button className="relative p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
-            <BellIcon className="h-6 w-6 text-gray-600 dark:text-gray-300" />
-            {unreadCount > 0 && (
-              <span className="absolute -top-0 -right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium leading-none text-black-800 bg-blue-500 rounded-full">
-                {unreadCount}
-              </span>
-            )}
-          </Menu.Button>
-        </div>
-
-        <Transition as={Fragment}
-          enter="transition ease-out duration-100"
-          enterFrom="transform opacity-0 scale-95"
-          enterTo="transform opacity-100 scale-100"
-          leave="transition ease-in duration-75"
-          leaveFrom="transform opacity-100 scale-100"
-          leaveTo="transform opacity-0 scale-95"
-        >
-          <Menu.Items className="absolute right-0 mt-2 w-[360px] max-h-[480px] overflow-auto rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 z-50">
-            <div className="flex items-center justify-between px-3 py-2 border-b dark:border-gray-700">
-              <div className="text-sm font-medium text-gray-700 dark:text-gray-200">Notifications</div>
-              <div className="flex items-center gap-2">
+        {({ open, close }) => (
+          <>
+            <div>
+              <Menu.Button className="relative p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
+                <BellIcon className="h-6 w-6 text-gray-600 dark:text-gray-300" />
                 {unreadCount > 0 && (
-                  <button onClick={markAllRead} className="text-xs text-gray-500 hover:underline">Mark all read</button>
+                  <span className="absolute -top-0 -right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium leading-none text-black-800 bg-blue-500 rounded-full">
+                    {unreadCount}
+                  </span>
                 )}
-                <button onClick={() => setNotifications([])} className="text-xs text-gray-400 hover:text-gray-600">
-                  <XMarkIcon className="h-4 w-4" />
-                </button>
-              </div>
+              </Menu.Button>
             </div>
 
-            {notifications.length === 0 && (
-              <div className="p-4 text-sm text-gray-500">You're all caught up.</div>
-            )}
-
-            {notifications.map((n) => (
-              <div key={n.id} className="px-3 py-2 border-b last:border-none dark:border-gray-700">
-                <div className="flex items-start gap-2">
-                  <div className="flex-1 cursor-pointer" onClick={() => openConversationFromNotification(n)}>
-                    <div className="text-sm font-medium text-gray-800 dark:text-gray-100">
-                      {n.type === "ContactRequested" ? `${n.data.requester_name} sent you a contact request` :
-                        n.type === "MessageReceived" ? `Message from ${n.data.sender?.name ?? "Unknown"}` :
-                        n.data.title ?? "Notification"}
-                    </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                      {n.data.summary ?? n.data.message ?? n.data.message_preview ?? ''}
-                    </div>
-                    <div className="text-xs text-gray-400 mt-1">{new Date(n.created_at).toLocaleString()}</div>
-                  </div>
-
-                  <div className="flex flex-col items-end gap-2">
-                    {n.type === "ContactRequested" && (
-                      <>
-                        <button onClick={() => acceptContactRequest(n)} className="text-xs px-2 py-1 rounded bg-green-600 text-white">Accept</button>
-                        <button onClick={() => rejectContactRequest(n)} className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200">Reject</button>
-                      </>
+            <Transition as={Fragment}
+              enter="transition ease-out duration-100"
+              enterFrom="transform opacity-0 scale-95"
+              enterTo="transform opacity-100 scale-100"
+              leave="transition ease-in duration-75"
+              leaveFrom="transform opacity-100 scale-100"
+              leaveTo="transform opacity-0 scale-95"
+            >
+              <Menu.Items className="absolute right-0 mt-2 w-[360px] max-h-[480px] overflow-auto rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 z-50">
+                <div className="flex items-center justify-between px-3 py-2 border-b dark:border-gray-700">
+                  <div className="text-sm font-medium text-gray-700 dark:text-gray-200">Notifications</div>
+                  <div className="flex items-center gap-2">
+                    {unreadCount > 0 && (
+                      <button 
+                        onClick={() => {
+                          markAllRead();
+                          // Close dropdown after marking all as read
+                          close();
+                        }} 
+                        className="text-xs text-gray-500 hover:underline"
+                      >
+                        Mark all read
+                      </button>
                     )}
-                    {n.type === "MessageReceived" && (
-                      <button onClick={() => markRead(n.id)} className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200">Mark read</button>
-                    )}
+                    <button 
+                      onClick={() => {
+                        setNotifications([]);
+                        // Close dropdown after clearing notifications
+                        close();
+                      }} 
+                      className="text-xs text-gray-400 hover:text-gray-600"
+                    >
+                      <XMarkIcon className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
-              </div>
-            ))}
-          </Menu.Items>
-        </Transition>
+
+                {notifications.length === 0 && (
+                  <div className="p-4 text-sm text-gray-500">You're all caught up.</div>
+                )}
+
+                {notifications.map((n) => (
+                  <Menu.Item key={n.id}>
+                    {({ active, close: closeItem }) => (
+                      <div className={`px-3 py-2 border-b last:border-none dark:border-gray-700 ${active ? 'bg-gray-50 dark:bg-gray-700' : ''}`}>
+                        <div className="flex items-start gap-2">
+                          <div 
+                            className="flex-1 cursor-pointer" 
+                            onClick={() => {
+                              openConversationFromNotification(n);
+                              closeItem();
+                            }}
+                          >
+                            <div className="text-sm font-medium text-gray-800 dark:text-gray-100">
+                              {n.type === "ContactRequested" ? `${n.data.requester_name} sent you a contact request` :
+                                n.type === "MessageReceived" ? `Message from ${n.data.sender?.name ?? "Unknown"}` :
+                                n.data.title ?? "Notification"}
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                              {n.data.summary ?? n.data.message ?? n.data.message_preview ?? ''}
+                            </div>
+                            <div className="text-xs text-gray-400 mt-1">{new Date(n.created_at).toLocaleString()}</div>
+                          </div>
+
+                          <div className="flex flex-col items-end gap-2">
+                            {n.type === "ContactRequested" && (
+                              <>
+                                <button 
+                                  onClick={() => {
+                                    acceptContactRequest(n);
+                                    closeItem();
+                                  }} 
+                                  className="text-xs px-2 py-1 rounded bg-green-600 text-white"
+                                >
+                                  Accept
+                                </button>
+                                <button 
+                                  onClick={() => {
+                                    rejectContactRequest(n);
+                                    closeItem();
+                                  }} 
+                                  className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200"
+                                >
+                                  Reject
+                                </button>
+                              </>
+                            )}
+                            {n.type === "MessageReceived" && (
+                              <button 
+                                onClick={() => {
+                                  markRead(n.id);
+                                  closeItem();
+                                }} 
+                                className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200"
+                              >
+                                Mark read
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </Menu.Item>
+                ))}
+              </Menu.Items>
+            </Transition>
+          </>
+        )}
       </Menu>
     </div>
   );

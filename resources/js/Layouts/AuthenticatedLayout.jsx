@@ -8,7 +8,7 @@ import { useState, useEffect } from "react";
 import Toast from "@/Components/App/Toast";
 import NewMessageNotification from "@/Components/App/NewMessageNotification";
 import NewContactModal from "@/Components/App/NewContactModal";
-import NotificationBell from "@/Components/App/NotificationBell"; // <-- added
+import NotificationBell from "@/Components/App/NotificationBell";
 
 export default function AuthenticatedLayout({ header, children }) {
     const user = usePage().props.auth.user;
@@ -24,13 +24,14 @@ export default function AuthenticatedLayout({ header, children }) {
     useEffect(() => {
         setLocalConversations(conversations);
     }, [conversations]);
-useEffect(() => {
-    const off = on("contact.request.accepted", (data) => {
-        if (!data) return;
-        router.visit(route("chat.user", { user: data.requester_id }));
-    });
-    return () => off();
-}, [on]);
+
+    useEffect(() => {
+        const off = on("contact.request.accepted", (data) => {
+            if (!data) return;
+            router.visit(route("chat.user", { user: data.requester_id }));
+        });
+        return () => off();
+    }, [on]);
 
     // Echo listener bindings (unchanged logic, kept as before)
     useEffect(() => {
@@ -201,7 +202,13 @@ useEffect(() => {
                               </div>
                             </div>
 
+                            {/* MOBILE: Hamburger menu and notification bell */}
                             <div className="-me-2 flex items-center sm:hidden">
+                                {/* Notification bell for mobile */}
+                                <div className="me-3">
+                                    <NotificationBell />
+                                </div>
+                                
                                 <button
                                     onClick={() =>
                                         setShowingNavigationDropdown(
