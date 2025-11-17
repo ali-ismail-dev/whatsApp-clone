@@ -93,7 +93,7 @@ class User extends Authenticatable
             ->leftJoin('messages', 'messages.id', '=', 'conversations.last_message_id')
             ->orderByDesc('messages.created_at')
             ->orderBy('users.name');
-
+            
         return $query->get();
     }
 
@@ -132,41 +132,34 @@ class User extends Authenticatable
     return $query->get();
 }
 
-    public function toConversationArray()
-    {
-        // Determine the content string for the last message
-        $lastMessageContent = $this->last_message;
-        // Determine the created_at string for the last message
-        $lastMessageDate = $this->last_message_date;
+   public function toConversationArray()
+{
+    // Use the fields from the query (last_message, last_message_date)
+    $lastMessageContent = $this->last_message;
+    $lastMessageDate = $this->last_message_date;
 
-        // Create the nested object structure required for sorting/frontend rendering
-        $lastMessageObject = null;
-        if ($lastMessageContent && $lastMessageDate) {
-            $lastMessageObject = [
-                'message' => $lastMessageContent,
-                'created_at' => $lastMessageDate,
-            ];
-        }
-        
-        return [
-            'is_user' => true,
-            'id' => $this->id,
-            'name' => $this->name,
-            'is_group' => false,
-            'is_admin' => (bool) $this->is_admin,
-            'avatar_url' => $this->avatar ? Storage::url($this->avatar) : null,
-
-            'updated_at' => $this->updated_at,
-            'created_at' => $this->created_at,
-            
-            // 🚨 THE FIX: Include the 'blocked_at' value from the model.
-            // If the user is blocked, this will be a DateTime object, otherwise null.
-            // We convert it to an ISO string for consistent frontend handling.
-            'blocked_at' => $this->blocked_at ? $this->blocked_at->toDateTimeString() : null, 
-            
-            'last_message' => $lastMessageObject, 
-            
-            'last_message_date' => $this->last_message_date, 
+    // Create the nested object structure
+    $lastMessageObject = null;
+    if ($lastMessageContent && $lastMessageDate) {
+        $lastMessageObject = [
+            'message' => $lastMessageContent,
+            'created_at' => $lastMessageDate,
         ];
     }
+    
+    return [
+        'is_user' => true,
+        'id' => $this->id,
+        'name' => $this->name,
+        'is_group' => false,
+        'is_admin' => (bool) $this->is_admin,
+        'avatar_url' => $this->avatar ? Storage::url($this->avatar) : null,
+        'updated_at' => $this->updated_at,
+        'created_at' => $this->created_at,
+        'blocked_at' => $this->blocked_at ? $this->blocked_at->toDateTimeString() : null, 
+        'last_message' => $lastMessageObject,
+        'last_message_date' => $lastMessageDate,
+        'last_message_time' => $lastMessageDate, // Add this for the frontend
+    ];
+}
 }
