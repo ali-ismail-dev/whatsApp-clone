@@ -179,7 +179,7 @@ export default function AuthenticatedLayout({ header, children }) {
         <>
             <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col h-screen">
                 {/* Navigation Bar */}
-                <nav className="bg-slate-800/80 backdrop-blur-xl border-b border-slate-700/50 shadow-xl">
+                <nav className="bg-slate-800/80 backdrop-blur-xl border-b border-slate-700/50 shadow-xl z-50">
                     <div className="mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="flex h-[77px] justify-between items-center">
                             {/* Left Side - Logo Only */}
@@ -345,7 +345,7 @@ export default function AuthenticatedLayout({ header, children }) {
                 )}
 
                 {/* Main Content */}
-                <main className="flex-1 overflow-hidden">
+                <main className="flex-1 overflow-auto">
                     {children}
                 </main>
             </div>

@@ -13,7 +13,7 @@ const Dropdown = ({ children }) => {
 
     return (
         <DropDownContext.Provider value={{ open, setOpen, toggleOpen }}>
-            <div className="relative">{children}</div>
+            <div className="relative z-[9999]">{children}</div>
         </DropDownContext.Provider>
     );
 };
@@ -38,7 +38,7 @@ const Trigger = ({ children }) => {
 const Content = ({
     align = 'right',
     width = '48',
-    contentClasses = 'py-1 bg-white dark:bg-gray-700',
+    contentClasses = 'py-1',
     children,
 }) => {
     const { open, setOpen } = useContext(DropDownContext);
@@ -61,23 +61,25 @@ const Content = ({
         <>
             <Transition
                 show={open}
-                enter="transition ease-out duration-200"
-                enterFrom="opacity-0 scale-95"
-                enterTo="opacity-100 scale-100"
-                leave="transition ease-in duration-75"
-                leaveFrom="opacity-100 scale-100"
-                leaveTo="opacity-0 scale-95"
+                enter="transition ease-out duration-300"
+                enterFrom="opacity-0 scale-95 -translate-y-2"
+                enterTo="opacity-100 scale-100 translate-y-0"
+                leave="transition ease-in duration-250"
+                leaveFrom="opacity-100 scale-100 translate-y-0"
+                leaveTo="opacity-0 scale-95 -translate-y-2"
             >
                 <div
-                    className={`absolute z-50 mt-2 rounded-md shadow-lg ${alignmentClasses} ${widthClasses}`}
+                    className={`absolute z-50 mt-2 rounded-2xl overflow-hidden ${alignmentClasses} ${widthClasses}`}
                     onClick={() => setOpen(false)}
                 >
                     <div
                         className={
-                            `rounded-md ring-1 ring-black ring-opacity-5 ` +
+                            `rounded-2xl backdrop-blur-xl shadow-2xl shadow-blue-500/20 border border-slate-600/50 bg-gradient-to-br from-slate-800/95 to-slate-900/95 ` +
                             contentClasses
                         }
                     >
+                        {/* Gradient accent line */}
+                        <div className="w-full h-1 bg-gradient-to-r from-blue-500 to-cyan-500"></div>
                         {children}
                     </div>
                 </div>
@@ -91,7 +93,7 @@ const DropdownLink = ({ className = '', children, ...props }) => {
         <Link
             {...props}
             className={
-                'block w-full px-4 py-2 text-start text-sm leading-5 text-gray-700 transition duration-150 ease-in-out hover:bg-gray-100 focus:bg-gray-100 focus:outline-none dark:text-gray-300 dark:hover:bg-gray-800 dark:focus:bg-gray-800 ' +
+                `block w-full px-4 py-3 text-start text-sm leading-5 text-slate-200 transition-all duration-300 ease-in-out hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white focus:outline-none border-b border-slate-600/50 last:border-b-0 hover:scale-[1.02] hover:shadow-md ` +
                 className
             }
         >

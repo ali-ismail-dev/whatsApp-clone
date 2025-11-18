@@ -57,12 +57,6 @@ export default function MessageItem({ message, attachmentClick }) {
   return (
     <div className={`group relative mb-6 ${isCurrentUserMessage ? "flex justify-end" : "flex justify-start"}`}>
       
-      {/* Message Options Dropdown - Only show on hover for current user's messages */}
-      {isCurrentUserMessage && (
-        <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 z-10">
-          <MessageOptionsDropdown message={message} />
-        </div>
-      )}
 
       <div className={`flex items-end gap-3 ${isCurrentUserMessage ? "flex-row-reverse" : "flex-row"}`}>
         
@@ -74,13 +68,10 @@ export default function MessageItem({ message, attachmentClick }) {
           `}>
             <UserAvatar user={message.sender} profile={false} />
           </div>
-          {/* Online status indicator */}
-          {message.sender?.is_online && (
-            <div className="w-2 h-2 bg-green-500 rounded-full mt-1 animate-pulse border border-slate-800"></div>
-          )}
         </div>
 
         {/* Message bubble with enhanced styling */}
+        
         <div className={bubbleClasses}>
           {/* Sender name for group messages (not current user) */}
           {!isCurrentUserMessage && message.conversation?.is_group && (
@@ -88,7 +79,12 @@ export default function MessageItem({ message, attachmentClick }) {
               {message.sender?.name}
             </div>
           )}
-          
+              {/* Message Options Dropdown - Only show on hover for current user's messages */}
+{isCurrentUserMessage && (
+  <div className="absolute -left-10 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 z-50">
+    <MessageOptionsDropdown message={message} />
+  </div>
+)}  
           {/* Message text with enhanced styling */}
           {hasText && (
             <div className="mb-3 prose-sm max-w-none">

@@ -159,9 +159,9 @@ export default function ChatLayout({ children }) {
   const blocked = (localConversation || []).filter((c) => c.blocked_at);
 
   return (
-    <div className="flex w-full h-full overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="flex w-full h-full overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative z-0">
       {/* Sidebar */}
-      <aside className={`bg-slate-800/80 backdrop-blur-xl border-r border-slate-700/50 flex flex-col overflow-hidden transition-all flex-shrink-0
+      <aside className={`bg-slate-800/80 backdrop-blur-xl border-r border-slate-700/50 flex flex-col overflow-hidden transition-all flex-shrink-0 relative z-10
           ${isOnChatRoute ? "hidden md:flex md:w-[380px]" : "flex w-full md:w-[380px]"}`}>
         
         {/* Sidebar Header */}
@@ -176,29 +176,31 @@ export default function ChatLayout({ children }) {
           </div>
           
           {/* Create Menu */}
-          <Menu as="div" className="relative inline-block text-left">
+          <Menu as="div" className="relative inline-block text-left z-50">
             <Menu.Button className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 p-3 text-white transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-slate-800 shadow-lg">
               <PlusIcon className="h-5 w-5" />
             </Menu.Button>
 
             <Transition
               as={Fragment}
-              enter="transition ease-out duration-200"
-              enterFrom="transform opacity-0 scale-95"
-              enterTo="transform opacity-100 scale-100"
-              leave="transition ease-in duration-150"
-              leaveFrom="transform opacity-100 scale-100"
-              leaveTo="transform opacity-0 scale-95"
+              enter="transition ease-out duration-300"
+              enterFrom="transform opacity-0 scale-95 -translate-y-2"
+              enterTo="transform opacity-100 scale-100 translate-y-0"
+              leave="transition ease-in duration-250"
+              leaveFrom="transform opacity-100 scale-100 translate-y-0"
+              leaveTo="transform opacity-0 scale-95 -translate-y-2"
             >
-              <Menu.Items className="absolute right-0 origin-top-right mt-2 w-48 rounded-xl bg-slate-800/95 backdrop-blur-xl border border-slate-700/50 shadow-2xl py-2 z-50">
+              <Menu.Items className="absolute right-0 origin-top-right mt-2 w-56 rounded-2xl overflow-hidden backdrop-blur-xl bg-gradient-to-br from-slate-800/95 to-slate-900/95 border border-slate-600/50 shadow-2xl shadow-blue-500/20 py-2 z-50">
+                {/* Gradient accent line */}
+                <div className="w-full h-1 bg-gradient-to-r from-blue-500 to-cyan-500"></div>
                 <div className="px-1">
                   <Menu.Item>
                     {({ active }) => (
                       <button
                         onClick={() => setShowNewUserModal(true)}
                         className={`${
-                          active ? "bg-slate-700/50 text-white" : "text-slate-200"
-                        } group flex w-full items-center rounded-lg px-3 py-3 text-sm transition-colors duration-150`}
+                          active ? "bg-slate-700/50 text-white border border-cyan-500/30" : "text-slate-200"
+                        } group flex w-full items-center rounded-xl px-3 py-3 text-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-md mx-1`}
                       >
                         <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center mr-3">
                           <PlusIcon className="h-4 w-4 text-white" />
@@ -215,8 +217,8 @@ export default function ChatLayout({ children }) {
                       <button
                         onClick={() => setShowGroupModal(true)}
                         className={`${
-                          active ? "bg-slate-700/50 text-white" : "text-slate-200"
-                        } group flex w-full items-center rounded-lg px-3 py-3 text-sm transition-colors duration-150`}
+                          active ? "bg-slate-700/50 text-white border border-cyan-500/30" : "text-slate-200"
+                        } group flex w-full items-center rounded-xl px-3 py-3 text-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-md mx-1 mt-1`}
                       >
                         <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center mr-3">
                           <PencilSquareIcon className="h-4 w-4 text-white" />
@@ -301,8 +303,8 @@ export default function ChatLayout({ children }) {
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <main className={`flex flex-col transition-all bg-slate-900/50 backdrop-blur-sm ${isOnChatRoute ? "flex w-full md:flex-1" : "hidden md:flex md:flex-1"}`}>
+      {/* Main Content Area - Fixed z-index to be below dropdowns */}
+      <main className={`flex flex-col transition-all bg-slate-900/50 backdrop-blur-sm relative z-0 ${isOnChatRoute ? "flex w-full md:flex-1" : "hidden md:flex md:flex-1"}`}>
         {childrenWithProps}
       </main>
 
