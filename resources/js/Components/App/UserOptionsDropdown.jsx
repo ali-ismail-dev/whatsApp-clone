@@ -63,7 +63,9 @@ export default function UserOptionsDropdown({ conversation }) {
         emit("toast.show", { message: "Deleting messages...", type: "info" });
 
         try {
-            await axios.post(route("conversation.clear", conversation.id));
+await axios.post(route("conversation.clear", conversation.id), {
+    type: conversation.is_group ? 'group' : 'user'
+});
             emit("conversation.cleared", { conversationId: conversation.id });
 
             // Show success toast

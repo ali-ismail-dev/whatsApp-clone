@@ -13,8 +13,7 @@ import axios from "axios";
 
 function Home({ messages = null, selectedConversation = null, onlineUsers = {} }) {
     
-    const [messagesList, setMessagesList] = useState([]);
-    const messagesCtrRef = useRef(null);
+const [messagesList, setMessagesList] = useState(messages?.data ? [...messages.data].reverse() : []);    const messagesCtrRef = useRef(null);
     const loadMoreIntersect = useRef(null);
     const { on } = useEventBus();
     const [showAttachmentPreview, setShowAttachmentPreview] = useState(false);
@@ -153,19 +152,7 @@ function Home({ messages = null, selectedConversation = null, onlineUsers = {} }
         return () => offCleared();
     }, [on, selectedConversation]);
 
-    useEffect(() => {
-        // Scroll to bottom when messages are initially loaded
-        setTimeout(() => {
-            scrollToBottom();
-        }, 100);
-        
-        const data = messages?.data || [];
-        if (Array.isArray(data)) {
-            setMessagesList([...data].reverse());
-        } else {
-            setMessagesList([]);
-        }
-    }, [messages]);
+    
 
     useEffect(() => {
         // Handle scroll position when loading older messages

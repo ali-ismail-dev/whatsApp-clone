@@ -187,7 +187,7 @@ export default function Toast() {
               </div>
 
               {/* CSS for progress animation */}
-              <style jsx>{`
+              <style>{`
                 @keyframes shrink {
                   from { width: 100%; }
                   to { width: 0%; }
