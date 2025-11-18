@@ -41,6 +41,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/contacts', [ContactController::class, 'store'])->name('contacts.store');
     Route::post('/contacts/{contact}/accept', [ContactController::class, 'accept'])->name('contacts.accept');
     Route::post('/contacts/{contact}/reject', [ContactController::class, 'reject'])->name('contacts.reject');
+    Route::put('/contacts/{contact}', [ContactController::class, 'update'])->name('contacts.update');
     Route::delete('/contacts/{id}', [ContactController::class, 'destroy'])->name('contacts.destroy');
 
     // Notifications

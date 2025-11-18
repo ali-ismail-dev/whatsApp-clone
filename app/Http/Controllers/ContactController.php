@@ -186,6 +186,30 @@ class ContactController extends Controller
         : back()->with('success', 'Contact request sent.');
 }
 
+// Update contact display name
+public function update(Request $request, Contact $contact)
+{
+    $user = Auth::user();
+
+    // Only the requester (person who added the contact) can update the display name
+    if ($contact->requester_id !== $user->id) {
+        return $request->wantsJson()
+            ? response()->json(['message' => 'Unauthorized'], 403)
+            : back()->with('error', 'Unauthorized');
+    }
+
+    $data = $request->validate([
+        'name' => ['required', 'string', 'max:255'],
+    ]);
+
+    $contact->update(['name' => $data['name']]);
+
+    return $request->wantsJson()
+        ? response()->json(['message' => 'Contact name updated', 'contact' => $contact])
+        : back()->with('success', 'Contact name updated.');
+}
+
+
     // Accept a contact request
     // Uses Route Model Binding: Contact $contact
    public function accept(Request $request, Contact $contact)
