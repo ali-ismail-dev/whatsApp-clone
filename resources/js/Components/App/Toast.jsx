@@ -80,7 +80,7 @@ export default function Toast() {
   }, [on]);
 
   return (
-    <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-sm pointer-events-none">
+    <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-[9999] w-full max-w-sm pointer-events-none">
       <div className="flex flex-col gap-2 px-4">
         {toasts.map((toast) => (
           <div
