@@ -23,7 +23,7 @@ Route::middleware('auth')->group(function () {
     // Messages
     Route::get('message/older/{message}', [MessageController::class, 'loadOlder'])->name('message.loadOlder');
     Route::post('message', [MessageController::class, 'store'])->name('message.store');
-    Route::delete('message/{message}', [MessageController::class, 'destroy'])->name('messages.destroy');
+    Route::delete('messages/{message}', [MessageController::class, 'destroy'])->name('messages.destroy');
 
     // Conversation actions
     // Clear conversation (user or group) — returns JSON and broadcasts event

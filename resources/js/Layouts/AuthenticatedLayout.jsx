@@ -1,6 +1,5 @@
 import ApplicationLogo from "@/Components/ApplicationLogo";
 import Dropdown from "@/Components/Dropdown";
-import NavLink from "@/Components/NavLink";
 import ResponsiveNavLink from "@/Components/ResponsiveNavLink";
 import { useEventBus } from "@/EventBus";
 import { Link, usePage, router } from "@inertiajs/react";
@@ -178,30 +177,33 @@ export default function AuthenticatedLayout({ header, children }) {
 
     return (
         <>
-            <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col h-screen">
-                <nav className="border-b border-gray-100 bg-white dark:border-gray-700 dark:bg-gray-800">
-                    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                        <div className="flex h-16 justify-between">
-                            <div className="flex">
+            <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col h-screen">
+                {/* Navigation Bar */}
+                <nav className="bg-slate-800/80 backdrop-blur-xl border-b border-slate-700/50 shadow-xl">
+                    <div className="mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex h-[77px] justify-between items-center">
+                            {/* Left Side - Logo Only */}
+                            <div className="flex items-center">
                                 <div className="flex shrink-0 items-center">
-                                    <Link href="/">
-                                        <ApplicationLogo className="block h-9 w-auto fill-current text-gray-800 dark:text-gray-200" />
+                                    <Link href="/" className="group relative">
+                                        <div className="relative transform transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
+                                            <ApplicationLogo className="block h-[90px] w-auto transition-all duration-300" />
+                                            {/* Enhanced Glow Effect */}
+                                            <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full opacity-0 group-hover:opacity-30 blur-lg transition-all duration-500 scale-150"></div>
+                                            {/* Additional Pulse Effect */}
+                                            <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-cyan-400 rounded-full opacity-0 group-hover:opacity-20 blur-md transition-all duration-700 scale-125 group-hover:scale-150"></div>
+                                        </div>
+                                        {/* Tooltip */}
+                                        <div className="absolute -bottom-10 left-1/2 transform -translate-x-1/2 bg-slate-700 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap pointer-events-none">
+                                            Go to Home
+                                        </div>
                                     </Link>
-                                </div>
-
-                                <div className="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                                    <NavLink
-                                        href={route("dashboard")}
-                                        active={route().current("dashboard")}
-                                    >
-                                        Dashboard
-                                    </NavLink>
                                 </div>
                             </div>
 
-                            {/* RIGHT SIDE: notifications, add contact, user dropdown */}
-                            <div className="hidden sm:ms-6 sm:flex sm:items-center">
-                              <div className="flex items-center gap-3">
+                            {/* RIGHT SIDE: notifications and user dropdown */}
+                            <div className="hidden sm:flex sm:items-center">
+                              <div className="flex items-center gap-4">
                                 {/* Notification bell for desktop */}
                                 <NotificationBell 
                                   notifications={notifications}
@@ -209,15 +211,18 @@ export default function AuthenticatedLayout({ header, children }) {
                                   unreadCount={unreadCount}
                                 />
 
-                                {/* user dropdown */}
-                                <div className="flex relative ms-3">
+                                {/* User dropdown */}
+                                <div className="flex relative">
                                   <Dropdown>
                                     <Dropdown.Trigger>
-                                      <span className="inline-flex rounded-md">
+                                      <span className="inline-flex rounded-lg">
                                         <button
                                           type="button"
-                                          className="inline-flex items-center rounded-md border border-transparent bg-white px-3 py-2 text-sm font-medium leading-4 text-gray-500 transition duration-150 ease-in-out hover:text-gray-700 focus:outline-none dark:bg-gray-800 dark:text-gray-400 dark:hover:text-gray-300"
+                                          className="inline-flex items-center rounded-lg bg-slate-700/50 backdrop-blur-sm px-4 py-2 text-sm font-medium text-slate-200 transition-all duration-200 hover:bg-slate-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-slate-800 border border-slate-600/50 hover:border-slate-500"
                                         >
+                                          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-sm mr-2">
+                                            {user.name.charAt(0).toUpperCase()}
+                                          </div>
                                           {user.name}
                                           <svg className="-me-0.5 ms-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                                             <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -226,9 +231,21 @@ export default function AuthenticatedLayout({ header, children }) {
                                       </span>
                                     </Dropdown.Trigger>
 
-                                    <Dropdown.Content>
-                                      <Dropdown.Link href={route("profile.edit")}>Profile</Dropdown.Link>
-                                      <Dropdown.Link href={route("logout")} method="post" as="button">Log Out</Dropdown.Link>
+                                    <Dropdown.Content className="bg-slate-800/95 backdrop-blur-xl border border-slate-700/50 rounded-xl shadow-2xl mt-2 py-2 min-w-[200px]">
+                                      <Dropdown.Link 
+                                        href={route("profile.edit")}
+                                        className="block px-4 py-2 text-sm text-slate-200 hover:bg-slate-700/50 transition-colors duration-150"
+                                      >
+                                        👤 Profile
+                                      </Dropdown.Link>
+                                      <Dropdown.Link 
+                                        href={route("logout")} 
+                                        method="post" 
+                                        as="button"
+                                        className="block w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700/50 transition-colors duration-150"
+                                      >
+                                        🚪 Log Out
+                                      </Dropdown.Link>
                                     </Dropdown.Content>
                                   </Dropdown>
                                 </div>
@@ -236,7 +253,7 @@ export default function AuthenticatedLayout({ header, children }) {
                             </div>
 
                             {/* MOBILE: Hamburger menu and notification bell */}
-                            <div className="-me-2 flex items-center sm:hidden">
+                            <div className="flex items-center sm:hidden">
                                 {/* Notification bell for mobile */}
                                 <div className="me-3">
                                     <NotificationBell 
@@ -246,13 +263,14 @@ export default function AuthenticatedLayout({ header, children }) {
                                     />
                                 </div>
                                 
+                                {/* Mobile menu button */}
                                 <button
                                     onClick={() =>
                                         setShowingNavigationDropdown(
                                             (previousState) => !previousState,
                                         )
                                     }
-                                    className="inline-flex items-center justify-center rounded-md p-2 text-gray-400 transition duration-150 ease-in-out hover:bg-gray-100 hover:text-gray-500 focus:bg-gray-100 focus:text-gray-500 focus:outline-none dark:text-gray-500 dark:hover:bg-gray-900 dark:hover:text-gray-400 dark:focus:bg-gray-900 dark:focus:text-gray-400"
+                                    className="inline-flex items-center justify-center rounded-lg p-2 text-slate-400 transition duration-150 ease-in-out hover:bg-slate-700/50 hover:text-slate-200 focus:bg-slate-700/50 focus:text-slate-200 focus:outline-none border border-slate-600/50"
                                 >
                                     <svg
                                         className="h-6 w-6"
@@ -280,46 +298,59 @@ export default function AuthenticatedLayout({ header, children }) {
                         </div>
                     </div>
 
-                    <div className={ (showingNavigationDropdown ? "block" : "hidden") + " sm:hidden" }>
-                        <div className="space-y-1 pb-3 pt-2">
-                            <ResponsiveNavLink href={route("dashboard")} active={route().current("dashboard")}>
-                                Dashboard
-                            </ResponsiveNavLink>
-                        </div>
-
-                        <div className="border-t border-gray-200 pb-1 pt-4 dark:border-gray-600">
+                    {/* Mobile Navigation Menu */}
+                    <div className={ (showingNavigationDropdown ? "block" : "hidden") + " sm:hidden bg-slate-800/95 backdrop-blur-xl border-t border-slate-700/50" }>
+                        <div className="border-t border-slate-700/50 pb-1 pt-4">
                             <div className="px-4">
-                                <div className="text-base font-medium text-gray-800 dark:text-gray-200">
-                                    {user.name}
-                                </div>
-                                <div className="text-sm font-medium text-gray-500">
-                                    {user.email}
+                                <div className="text-base font-medium text-slate-200 flex items-center">
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-sm mr-3">
+                                        {user.name.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div>
+                                        <div>{user.name}</div>
+                                        <div className="text-sm font-normal text-slate-400">{user.email}</div>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="mt-3 space-y-1">
-                                <ResponsiveNavLink href={route("profile.edit")}>
-                                    Profile
+                            <div className="mt-3 space-y-1 px-4">
+                                <ResponsiveNavLink 
+                                    href={route("profile.edit")}
+                                    className="block px-3 py-2 rounded-lg text-base font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 transition-colors duration-150"
+                                >
+                                    👤 Profile
                                 </ResponsiveNavLink>
-                                <ResponsiveNavLink method="post" href={route("logout")} as="button">
-                                    Log Out
+                                <ResponsiveNavLink 
+                                    method="post" 
+                                    href={route("logout")} 
+                                    as="button"
+                                    className="block w-full text-left px-3 py-2 rounded-lg text-base font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 transition-colors duration-150"
+                                >
+                                    🚪 Log Out
                                 </ResponsiveNavLink>
                             </div>
                         </div>
                     </div>
-                    
                 </nav>
 
+                {/* Page Header */}
                 {header && (
-                    <header className="bg-white shadow dark:bg-gray-800">
-                        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-                            {header}
+                    <header className="bg-slate-800/50 backdrop-blur-sm border-b border-slate-700/30 shadow-sm">
+                        <div className="mx-auto px-4 py-4 sm:px-6 lg:px-8">
+                            <div className="flex items-center justify-between">
+                                {header}
+                            </div>
                         </div>
                     </header>
                 )}
 
-                {children}
+                {/* Main Content */}
+                <main className="flex-1 overflow-hidden">
+                    {children}
+                </main>
             </div>
+            
+            {/* Global Components */}
             <Toast />
             <NewMessageNotification />
             <NewContactModal show={showNewUserModal} onClose={() => setShowNewUserModal(false)} />

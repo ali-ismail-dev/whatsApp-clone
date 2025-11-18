@@ -136,27 +136,70 @@ export default function NotificationBell({ notifications, setNotifications, unre
         {({ open, close }) => (
           <>
             <div>
-              <Menu.Button className="relative p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
-                <BellIcon className="h-6 w-6 text-gray-600 dark:text-gray-300" />
+              <Menu.Button className="
+                relative p-3 rounded-xl 
+                text-slate-400 hover:text-cyan-400 
+                transition-all duration-300 
+                hover:bg-slate-700/50 backdrop-blur-sm
+                border border-transparent hover:border-slate-600/50
+                hover:scale-110 hover:shadow-lg hover:shadow-blue-500/20
+                group
+              ">
+                <BellIcon className="h-6 w-6 group-hover:scale-110 transition-transform" />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-0 -right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium leading-none text-black-800 bg-blue-500 rounded-full">
-                    {unreadCount}
+                  <span className="
+                    absolute -top-1 -right-1 
+                    inline-flex items-center justify-center 
+                    px-2 py-1 text-xs font-bold 
+                    leading-none text-white
+                    bg-gradient-to-r from-red-500 to-pink-500 
+                    rounded-full min-w-[20px] h-5
+                    shadow-lg shadow-red-500/30
+                    animate-pulse
+                  ">
+                    {unreadCount > 99 ? '99+' : unreadCount}
                   </span>
                 )}
               </Menu.Button>
             </div>
 
             <Transition as={Fragment}
-              enter="transition ease-out duration-100"
-              enterFrom="transform opacity-0 scale-95"
-              enterTo="transform opacity-100 scale-100"
-              leave="transition ease-in duration-75"
-              leaveFrom="transform opacity-100 scale-100"
-              leaveTo="transform opacity-0 scale-95"
+              enter="transition ease-out duration-300"
+              enterFrom="transform opacity-0 scale-95 -translate-y-2"
+              enterTo="transform opacity-100 scale-100 translate-y-0"
+              leave="transition ease-in duration-250"
+              leaveFrom="transform opacity-100 scale-100 translate-y-0"
+              leaveTo="transform opacity-0 scale-95 -translate-y-2"
             >
-              <Menu.Items className="absolute right-0 mt-2 w-[360px] max-h-[480px] overflow-auto rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 z-50">
-                <div className="flex items-center justify-between px-3 py-2 border-b dark:border-gray-700">
-                  <div className="text-sm font-medium text-gray-700 dark:text-gray-200">Notifications</div>
+              <Menu.Items className="
+                absolute right-0 mt-3 w-96 max-h-96 overflow-auto 
+                rounded-2xl backdrop-blur-xl
+                bg-gradient-to-br from-slate-800/95 to-slate-900/95
+                shadow-2xl shadow-blue-500/20
+                border border-slate-600/50 z-50
+                overflow-hidden
+              ">
+                {/* Gradient header */}
+                <div className="
+                  flex items-center justify-between p-4 
+                  border-b border-slate-600/50
+                  bg-gradient-to-r from-blue-500/10 to-cyan-500/10
+                ">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-xl backdrop-blur-sm">
+                      <BellIcon className="h-4 w-4 text-cyan-400" />
+                    </div>
+                    <div className="text-sm font-semibold text-slate-200">Notifications</div>
+                    {unreadCount > 0 && (
+                      <span className="
+                        px-2 py-1 text-xs font-medium
+                        bg-gradient-to-r from-blue-500 to-cyan-500
+                        text-white rounded-full
+                      ">
+                        {unreadCount} new
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2">
                     {unreadCount > 0 && (
                       <button 
@@ -164,7 +207,14 @@ export default function NotificationBell({ notifications, setNotifications, unre
                           markAllRead();
                           close();
                         }} 
-                        className="text-xs text-gray-500 hover:underline"
+                        className="
+                          text-xs px-3 py-1 rounded-lg
+                          bg-slate-700/50 text-slate-300 
+                          hover:bg-slate-600/50 hover:text-white
+                          transition-all duration-300 backdrop-blur-sm
+                          border border-slate-600/50
+                          hover:scale-105
+                        "
                       >
                         Mark all read
                       </button>
@@ -174,89 +224,149 @@ export default function NotificationBell({ notifications, setNotifications, unre
                         setNotifications([]);
                         close();
                       }} 
-                      className="text-xs text-gray-400 hover:text-gray-600"
+                      className="
+                        p-1.5 rounded-lg
+                        text-slate-400 hover:text-cyan-400
+                        hover:bg-slate-700/50 transition-all duration-300
+                        backdrop-blur-sm border border-transparent
+                        hover:border-slate-600/50 hover:scale-110
+                      "
                     >
                       <XMarkIcon className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
 
-                {notifications.length === 0 && (
-                  <div className="p-4 text-sm text-gray-500">You're all caught up.</div>
-                )}
+                {/* Notifications list */}
+                <div className="max-h-80 overflow-y-auto">
+                  {notifications.length === 0 && (
+                    <div className="p-6 text-center">
+                      <div className="
+                        p-3 mx-auto w-12 h-12 
+                        bg-slate-700/50 rounded-xl 
+                        backdrop-blur-sm mb-3
+                      ">
+                        <BellIcon className="h-6 w-6 text-slate-400 mx-auto" />
+                      </div>
+                      <div className="text-sm text-slate-400">You're all caught up.</div>
+                      <div className="text-xs text-slate-500 mt-1">No new notifications</div>
+                    </div>
+                  )}
 
-                {notifications.map((n) => {
-                  const { title, summary } = getNotificationText(n);
-                  
-                  return (
-                    <Menu.Item key={n.id}>
-                      {({ active, close: closeItem }) => (
-                        <div className={`px-3 py-2 border-b last:border-none dark:border-gray-700 ${active ? 'bg-gray-50 dark:bg-gray-700' : ''}`}>
-                          <div className="flex items-start gap-2">
-                            <div 
-                              className="flex-1 cursor-pointer" 
-                              onClick={() => {
-                                openConversationFromNotification(n);
-                                closeItem();
-                              }}
-                            >
-                              <div className="text-sm font-medium text-gray-800 dark:text-gray-100">
-                                {title}
-                              </div>
-                              {summary && (
-                                <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                  {summary}
+                  {notifications.map((n) => {
+                    const { title, summary } = getNotificationText(n);
+                    
+                    return (
+                      <Menu.Item key={n.id}>
+                        {({ active, close: closeItem }) => (
+                          <div className={`
+                            p-4 border-b last:border-none 
+                            border-slate-600/30 transition-all duration-300
+                            ${active ? 'bg-slate-700/30 backdrop-blur-sm' : ''}
+                            hover:bg-slate-700/40
+                          `}>
+                            <div className="flex items-start gap-3">
+                              {/* Notification indicator */}
+                              <div className="
+                                w-2 h-2 mt-2 rounded-full
+                                bg-gradient-to-r from-cyan-500 to-blue-500
+                                animate-pulse flex-shrink-0
+                              "></div>
+
+                              <div 
+                                className="flex-1 cursor-pointer min-w-0" 
+                                onClick={() => {
+                                  openConversationFromNotification(n);
+                                  closeItem();
+                                }}
+                              >
+                                <div className="text-sm font-medium text-slate-200 leading-relaxed">
+                                  {title}
                                 </div>
-                              )}
-                              <div className="text-xs text-gray-400 mt-1">
-                                {new Date(n.created_at).toLocaleString()}
+                                {summary && (
+                                  <div className="text-xs text-slate-400 mt-1 leading-relaxed">
+                                    {summary}
+                                  </div>
+                                )}
+                                <div className="text-xs text-slate-500 mt-2">
+                                  {new Date(n.created_at).toLocaleString()}
+                                </div>
                               </div>
-                            </div>
 
-                            <div className="flex flex-col items-end gap-2">
-                              {n.type === "ContactRequested" && (
-                                <>
+                              <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                                {n.type === "ContactRequested" && (
+                                  <div className="flex gap-2">
+                                    <button 
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        acceptContactRequest(n);
+                                        closeItem();
+                                      }} 
+                                      className="
+                                        text-xs px-3 py-1.5 rounded-lg
+                                        bg-gradient-to-r from-green-500 to-emerald-500
+                                        text-white hover:from-green-600 hover:to-emerald-600
+                                        transition-all duration-300 hover:scale-105
+                                        shadow-lg shadow-green-500/20
+                                        backdrop-blur-sm border border-green-400/30
+                                      "
+                                    >
+                                      Accept
+                                    </button>
+                                    <button 
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        rejectContactRequest(n);
+                                        closeItem();
+                                      }} 
+                                      className="
+                                        text-xs px-3 py-1.5 rounded-lg
+                                        bg-slate-700/50 text-slate-300 
+                                        hover:bg-red-500/20 hover:text-red-300
+                                        transition-all duration-300 hover:scale-105
+                                        backdrop-blur-sm border border-slate-600/50
+                                        hover:border-red-500/30
+                                      "
+                                    >
+                                      Reject
+                                    </button>
+                                  </div>
+                                )}
+                                {(n.type === "ContactAccepted" || n.type === "ContactRejected" || n.type === "MessageReceived") && (
                                   <button 
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      acceptContactRequest(n);
+                                      markRead(n.id);
                                       closeItem();
                                     }} 
-                                    className="text-xs px-2 py-1 rounded bg-green-600 text-white hover:bg-green-700"
+                                    className="
+                                      text-xs px-3 py-1.5 rounded-lg
+                                      bg-slate-700/50 text-slate-300 
+                                      hover:bg-slate-600/50 hover:text-white
+                                      transition-all duration-300 hover:scale-105
+                                      backdrop-blur-sm border border-slate-600/50
+                                    "
                                   >
-                                    Accept
+                                    Mark read
                                   </button>
-                                  <button 
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      rejectContactRequest(n);
-                                      closeItem();
-                                    }} 
-                                    className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
-                                  >
-                                    Reject
-                                  </button>
-                                </>
-                              )}
-                              {(n.type === "ContactAccepted" || n.type === "ContactRejected" || n.type === "MessageReceived") && (
-                                <button 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    markRead(n.id);
-                                    closeItem();
-                                  }} 
-                                  className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
-                                >
-                                  Mark read
-                                </button>
-                              )}
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      )}
-                    </Menu.Item>
-                  );
-                })}
+                        )}
+                      </Menu.Item>
+                    );
+                  })}
+                </div>
+
+                {/* Footer */}
+                {notifications.length > 0 && (
+                  <div className="p-3 border-t border-slate-600/50 bg-slate-900/50">
+                    <p className="text-xs text-slate-500 text-center">
+                      {notifications.length} notification{notifications.length !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                )}
               </Menu.Items>
             </Transition>
           </>

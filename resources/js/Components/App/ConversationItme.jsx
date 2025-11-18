@@ -3,6 +3,7 @@ import UserAvatar from "./UserAvatar";
 import GroupAvatar from "./GroupAvatar";
 import { route } from "ziggy-js";
 import UserOptionsDropdown from "./UserOptionsDropdown";
+import { UserGroupIcon, CheckIcon } from "@heroicons/react/24/outline";
 
 /**
  * Smart time formatting for conversation list - WhatsApp style
@@ -70,6 +71,7 @@ function extractLastMessageText(lastMsg) {
   return String(lastMsg);
 }
 
+
 export default function ConversationItem({
   conversation,
   online = null,
@@ -78,86 +80,139 @@ export default function ConversationItem({
   const page = usePage();
   const currentUser = page.props?.auth?.user ?? {};
 
-  let classes = " border-transparent";
-  if (selectedConversation) {
-    if (
-      !selectedConversation.is_group &&
-      !conversation.is_group &&
-      selectedConversation.id === conversation.id
-    ) {
-      classes = " bg-black/20 border-blue-500";
-    } else if (
-      selectedConversation.is_group &&
-      conversation.is_group &&
-      selectedConversation.id === conversation.id
-    ) {
-      classes = " bg-black/20 border-blue-500";
-    }
-  }
+  const isSelected = selectedConversation && 
+    ((!selectedConversation.is_group && !conversation.is_group && selectedConversation.id === conversation.id) ||
+     (selectedConversation.is_group && conversation.is_group && selectedConversation.id === conversation.id));
+
+  const isBlocked = conversation.is_user && conversation.blocked_at;
+  const hasUnread = conversation.unread_count > 0;
 
   const lastText = extractLastMessageText(conversation.last_message);
-
-  // Use smart time formatting
-  const lastTime =
-    conversation.last_message_time
-      ? formatSmartTime(conversation.last_message_time)
-      : conversation.last_message && conversation.last_message.created_at
-      ? formatSmartTime(conversation.last_message.created_at)
-      : "";
+  const lastTime = conversation.last_message_time
+    ? formatSmartTime(conversation.last_message_time)
+    : conversation.last_message && conversation.last_message.created_at
+    ? formatSmartTime(conversation.last_message.created_at)
+    : "";
 
   return (
     <Link
-  href={
-    conversation.is_group
-      ? route("chat.group", conversation)
-      : route("chat.user", conversation)
-  }
-  preserveState
-  className={
-    "conversation-item flex items-center gap-2 p-2 text-gray-300 transition-all cursor-pointer hover:bg-black/20" +
-    classes +
-    (conversation.is_user && conversation.blocked_at
-      ? " bg-black/30 cursor-not-allowed" // dark background and disabled cursor
-      : "")
-  }
->
-  {conversation.is_user && <UserAvatar user={conversation} online={online} />}
-  {conversation.is_group && <GroupAvatar group={conversation} />}
+      href={
+        conversation.is_group
+          ? route("chat.group", conversation)
+          : route("chat.user", conversation)
+      }
+      preserveState
+      className={`
+        relative flex items-center gap-3 p-4 transition-all duration-300 group
+        ${isSelected 
+          ? 'bg-gradient-to-r from-blue-500/15 via-blue-500/10 to-cyan-500/15 border-l-4 border-cyan-500 shadow-inner' 
+          : 'hover:bg-slate-700/30 border-l-4 border-transparent'
+        }
+        ${isBlocked ? 'opacity-70 grayscale-20' : ''}
+        ${hasUnread ? 'bg-slate-700/20' : ''}
+      `}
+    >
+      {/* Unread Message Badge */}
+      {hasUnread && !isSelected && (
+        <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-2 h-2 bg-cyan-500 rounded-full animate-pulse"></div>
+      )}
 
-  <div
-    className={
-      "flex-1 max-w-full overflow-hidden" +
-      (conversation.is_user && conversation.blocked_at ? " opacity-50" : "")
-    }
-  >
-    <div className="flex gap-1 justify-between items-center">
-      <h3 className="text-sm font-semibold overflow-hidden text-ellipsis whitespace-nowrap">
-        {conversation.name}
-        {conversation.blocked_at && (
-          <span className="ml-1 text-[10px] text-red-400 uppercase font-bold">
-            Blocked
-          </span>
+      {/* Avatar Container */}
+      <div className="relative flex-shrink-0">
+        {conversation.is_user ? (
+          <UserAvatar user={conversation} online={online} />
+        ) : (
+          <GroupAvatar group={conversation} />
         )}
-      </h3>
+        
+        {/* Status Indicators */}
+        <div className="absolute -bottom-1 -right-1 flex items-center justify-center">
+          {conversation.is_group ? (
+            <div className="w-5 h-5 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center border-2 border-slate-800 shadow-lg">
+              <UserGroupIcon className="w-2.5 h-2.5 text-white" />
+            </div>
+          ) : online ? (
+            <div className="w-3 h-3 bg-green-500 rounded-full border-2 border-slate-800 shadow-lg animate-pulse"></div>
+          ) : null}
+        </div>
+      </div>
 
-      {lastTime && <span className="text-xs text-gray-400">{lastTime}</span>}
-    </div>
+      {/* Conversation Content */}
+      <div className={`flex-1 min-w-0 ${isBlocked ? 'opacity-80' : ''}`}>
+        <div className="flex justify-between items-start gap-2 mb-1.5">
+          {/* Conversation Name */}
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <h3 className={`text-sm font-semibold truncate ${
+              isSelected ? 'text-white' : hasUnread ? 'text-slate-100' : 'text-slate-200'
+            }`}>
+              {conversation.name}
+            </h3>
+            
+            {/* Status Badges */}
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {isBlocked && (
+                <span className="px-1.5 py-0.5 bg-red-500/20 text-red-400 text-[10px] font-medium rounded border border-red-500/30">
+                  BLOCKED
+                </span>
+              )}
+              
+              {hasUnread && (
+                <span className="px-1.5 py-0.5 bg-cyan-500/20 text-cyan-400 text-[10px] font-medium rounded border border-cyan-500/30">
+                  {conversation.unread_count} NEW
+                </span>
+              )}
+            </div>
+          </div>
 
-    {lastText && (
-      <p className="text-xs text-gray-400 overflow-hidden text-ellipsis whitespace-nowrap">
-        {lastText}
-      </p>
-    )}
-  </div>
+          {/* Time */}
+          {lastTime && (
+            <span className={`text-xs flex-shrink-0 flex items-center gap-1 ${
+              isSelected ? 'text-cyan-300' : hasUnread ? 'text-cyan-400' : 'text-slate-400'
+            }`}>
+              {hasUnread && <ClockIcon className="w-3 h-3" />}
+              {lastTime}
+            </span>
+          )}
+        </div>
 
-  {conversation.is_user ? (
-    <div className="w-8 flex-shrink-0 flex justify-center">
-    <UserOptionsDropdown conversation={conversation} />
-  </div>
-  ) : (
-    ""
-  )}
-</Link>
+        {/* Last Message Preview */}
+        {lastText ? (
+          <div className="flex items-center gap-2">
+            <p className={`text-sm truncate ${
+              isSelected ? 'text-cyan-100' : hasUnread ? 'text-slate-300' : 'text-slate-400'
+            }`}>
+              {lastText}
+            </p>
+          </div>
+        ) : conversation.is_group ? (
+          <p className="text-sm text-slate-400 flex items-center gap-1.5">
+            <UserGroupIcon className="w-3 h-3" />
+            {conversation.users?.length || 0} members • No messages yet
+          </p>
+        ) : (
+          <p className="text-sm text-slate-400">Start a conversation...</p>
+        )}
+      </div>
 
+      {/* User Options Dropdown */}
+      {conversation.is_user && (
+        <div className={`
+          flex-shrink-0 transition-all duration-200
+          ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}
+        `}>
+          <UserOptionsDropdown conversation={conversation} />
+        </div>
+      )}
+
+      {/* Selection Glow Effect */}
+      {isSelected && (
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 rounded-lg pointer-events-none"></div>
+      )}
+
+      {/* Hover Effect */}
+      {!isSelected && (
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-600/5 to-slate-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-lg pointer-events-none"></div>
+      )}
+    </Link>
   );
 }

@@ -87,59 +87,137 @@ export default function UserOptionsDropdown({ conversation }) {
         <div className="relative inline-block text-left">
             <Menu as="div" className="relative inline-block text-left">
                 <div>
-                    <Menu.Button className="flex justify-center items-center w-8 h-8 rounded-full hover:bg-slate-600">
-                        <EllipsisVerticalIcon className="w-5 h-5 text-gray-400" />
+                    <Menu.Button className="
+                        flex justify-center items-center w-8 h-8 
+                        rounded-xl hover:bg-slate-700/50 
+                        backdrop-blur-sm border border-slate-600/50
+                        transition-all duration-300 
+                        hover:scale-110 hover:shadow-lg hover:shadow-blue-500/20
+                        text-slate-400 hover:text-cyan-400
+                        group
+                    ">
+                        <EllipsisVerticalIcon className="w-5 h-5 group-hover:scale-110 transition-transform" />
                     </Menu.Button>
                 </div>
                 <Transition
                     as={Fragment}
-                    enter="transition ease-out duration-100"
-                    enterFrom="transform opacity-0 scale-95"
-                    enterTo="transform opacity-100 scale-100"
-                    leave="transition ease-in duration-75"
-                    leaveFrom="transform opacity-100 scale-100"
-                    leaveTo="transform opacity-0 scale-95"
+                    enter="transition ease-out duration-300"
+                    enterFrom="transform opacity-0 scale-95 -translate-y-2"
+                    enterTo="transform opacity-100 scale-100 translate-y-0"
+                    leave="transition ease-in duration-250"
+                    leaveFrom="transform opacity-100 scale-100 translate-y-0"
+                    leaveTo="transform opacity-0 scale-95 -translate-y-2"
                 >
-                    <Menu.Items className="absolute right-0 mt-2 w-48 rounded-md bg-gray-900 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
-                        <div className="py-1 px-1">
+                    <Menu.Items className="
+                        absolute right-6 top-1 mt-2 w-56 
+                        rounded-2xl overflow-hidden
+                        backdrop-blur-xl bg-slate-800/95
+                        bg-gradient-to-br from-slate-800/95 to-slate-900/95
+                        shadow-2xl shadow-blue-500/20
+                        border border-slate-600/50
+                        focus:outline-none z-30
+                    ">
+                        {/* Gradient accent line */}
+                        <div className="w-full h-1 bg-gradient-to-r from-blue-500 to-cyan-500"></div>
+                        
+                        <div className="py-2 px-2">
                             <Menu.Item>
                                 {({ active, close }) => (
                                     <button
                                         onClick={() => onBlockUser(close)}
-                                        className={`${
-                                            active
-                                                ? "bg-gray-700 text-white"
-                                                : "text-gray-300"
-                                        } group flex w-full items-center rounded-md px-2 py-2 text-sm`}
+                                        className={`
+                                            group flex w-full items-center rounded-xl px-3 py-3 text-sm
+                                            transition-all duration-300
+                                            ${active 
+                                                ? conversation.blocked_at
+                                                    ? 'bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-white border border-green-500/30' 
+                                                    : 'bg-gradient-to-r from-red-500/20 to-pink-500/20 text-white border border-red-500/30'
+                                                : 'text-slate-300'
+                                            }
+                                            hover:scale-[1.02] hover:shadow-md
+                                        `}
                                     >
-                                        {conversation.blocked_at && (
-                                            <>
-                                                <LockOpenIcon className="w-5 h-5 mr-2" />
-                                                Unblock User
-                                            </>
-                                        )}
-                                        {!conversation.blocked_at && (
-                                            <>
-                                                <LockClosedIcon className="w-5 h-5 mr-2" />
-                                                Block User
-                                            </>
-                                        )}
+                                        <div className={`
+                                            p-2 rounded-lg mr-3 transition-all duration-300
+                                            ${active 
+                                                ? conversation.blocked_at
+                                                    ? 'bg-green-500/20 text-green-400' 
+                                                    : 'bg-red-500/20 text-red-400'
+                                                : conversation.blocked_at
+                                                    ? 'bg-slate-700/50 text-green-400 group-hover:text-green-400 group-hover:bg-green-500/20'
+                                                    : 'bg-slate-700/50 text-red-400 group-hover:text-red-400 group-hover:bg-red-500/20'
+                                            }
+                                        `}>
+                                            {conversation.blocked_at ? (
+                                                <LockOpenIcon className="w-4 h-4" />
+                                            ) : (
+                                                <LockClosedIcon className="w-4 h-4" />
+                                            )}
+                                        </div>
+                                        <span className="font-medium">
+                                            {conversation.blocked_at ? "Unblock User" : "Block User"}
+                                        </span>
+                                        
+                                        {/* Animated dot on hover */}
+                                        <div className={`
+                                            ml-auto w-2 h-2 rounded-full
+                                            transition-all duration-300
+                                            ${active 
+                                                ? conversation.blocked_at
+                                                    ? 'bg-green-500 opacity-100 scale-100'
+                                                    : 'bg-red-500 opacity-100 scale-100'
+                                                : 'opacity-0 scale-50'
+                                            }
+                                        `}></div>
                                     </button>
                                 )}
                             </Menu.Item>
-                        </div>
-                        <div className="px-1 py-2">
+
                             <Menu.Item>
                                 {({ active, close }) => (
                                     <button
                                         onClick={() => onClearMessages(close)}
-                                        className={`${active ? "bg-gray-700 text-white" : "text-gray-300"} group flex w-full items-center rounded-md px-2 py-2 text-sm`}
+                                        className={`
+                                            group flex w-full items-center rounded-xl px-3 py-3 text-sm
+                                            transition-all duration-300
+                                            ${active 
+                                                ? 'bg-gradient-to-r from-orange-500/20 to-amber-500/20 text-white border border-orange-500/30' 
+                                                : 'text-slate-300'
+                                            }
+                                            hover:scale-[1.02] hover:shadow-md
+                                            mt-1
+                                        `}
                                     >
-                                        <TrashIcon className="w-5 h-5 mr-2" />
-                                        Clear all messages
+                                        <div className={`
+                                            p-2 rounded-lg mr-3 transition-all duration-300
+                                            ${active 
+                                                ? 'bg-orange-500/20 text-orange-400' 
+                                                : 'bg-slate-700/50 text-orange-400 group-hover:text-orange-400 group-hover:bg-orange-500/20'
+                                            }
+                                        `}>
+                                            <TrashIcon className="w-4 h-4" />
+                                        </div>
+                                        <span className="font-medium">Clear All Messages</span>
+                                        
+                                        {/* Animated dot on hover */}
+                                        <div className={`
+                                            ml-auto w-2 h-2 rounded-full bg-orange-500
+                                            transition-all duration-300
+                                            ${active ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}
+                                        `}></div>
                                     </button>
                                 )}
                             </Menu.Item>
+                        </div>
+
+                        {/* Footer with warning for destructive actions */}
+                        <div className="px-3 py-2 border-t border-slate-600/50 bg-slate-900/50">
+                            <p className="text-xs text-slate-500 text-center">
+                                {conversation.blocked_at 
+                                    ? "Unblocking will allow messages from this user"
+                                    : "These actions cannot be undone"
+                                }
+                            </p>
                         </div>
                     </Menu.Items>
                 </Transition>

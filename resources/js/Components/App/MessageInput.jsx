@@ -112,14 +112,14 @@ export default function MessageInput({ conversation = null }) {
   return (
     <div className="w-full">
       {/* INPUT BAR */}
-      <div className="flex items-center space-x-3 border-t border-slate-700 p-4 bg-gray-900 shadow-md relative">
+      <div className="flex items-center space-x-3 p-4 bg-gradient-to-t from-slate-900/95 to-slate-800/95 backdrop-blur-xl border-t border-slate-700/50 shadow-2xl shadow-blue-500/5 relative">
         {/* LEFT ICONS */}
         <div className="flex items-center space-x-1">
           <label
-            className="relative p-2 text-slate-400 hover:text-cyan-400 transition-colors rounded-full cursor-pointer"
+            className="relative p-3 text-slate-400 hover:text-cyan-400 transition-all duration-300 rounded-xl cursor-pointer hover:bg-slate-700/50 backdrop-blur-sm group"
             title="Attach File"
           >
-            <PaperClipIcon className="w-6 h-6" />
+            <PaperClipIcon className="w-6 h-6 group-hover:scale-110 transition-transform" />
             <input
               type="file"
               multiple
@@ -129,10 +129,10 @@ export default function MessageInput({ conversation = null }) {
           </label>
 
           <label
-            className="relative p-2 text-slate-400 hover:text-cyan-400 transition-colors rounded-full cursor-pointer"
+            className="relative p-3 text-slate-400 hover:text-cyan-400 transition-all duration-300 rounded-xl cursor-pointer hover:bg-slate-700/50 backdrop-blur-sm group"
             title="Upload Image"
           >
-            <PhotoIcon className="w-6 h-6" />
+            <PhotoIcon className="w-6 h-6 group-hover:scale-110 transition-transform" />
             <input
               type="file"
               multiple
@@ -143,98 +143,138 @@ export default function MessageInput({ conversation = null }) {
           </label>
 
           <Popover className="relative">
-            <Popover.Button className="p-2 text-slate-400 hover:text-cyan-400 transition-colors rounded-full">
-              <FaceSmileIcon className="w-6 h-6" />
+            <Popover.Button className="p-3 text-slate-400 hover:text-cyan-400 transition-all duration-300 rounded-xl hover:bg-slate-700/50 backdrop-blur-sm group">
+              <FaceSmileIcon className="w-6 h-6 group-hover:scale-110 transition-transform" />
             </Popover.Button>
-            <Popover.Panel className="absolute left-0 z-50 bottom-full">
-              <EmojiPicker
-                theme="dark"
-                onEmojiClick={(ev) => setNewMessage((m) => m + ev.emoji)}
-              />
+            <Popover.Panel className="absolute left-0 z-50 bottom-full mb-3">
+              <div className="rounded-2xl overflow-hidden shadow-2xl shadow-blue-500/20 border border-slate-600/50">
+                <EmojiPicker
+                  theme="dark"
+                  onEmojiClick={(ev) => setNewMessage((m) => m + ev.emoji)}
+                />
+              </div>
             </Popover.Panel>
           </Popover>
+          
           <AudioRecorder fileReady={recordedAudioReady} />
         </div>
 
         {/* INPUT AREA */}
-        <div className="flex-grow flex relative rounded-xl bg-slate-800 border border-slate-700 transition-all focus-within:border-cyan-500">
-          <textarea
-            ref={textareaRef}
-            value={newMessage}
-            onChange={handleChange}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-              }
-            }}
-            className="w-full resize-none overflow-hidden p-3 max-h-40 min-h-[2.8rem] border-none bg-transparent text-slate-100 placeholder-slate-400 focus:ring-0 focus:outline-none rounded-xl"
-            placeholder="Type a message..."
-            rows={1}
-          />
+        <div className="flex-grow flex relative">
+          <div className="
+            flex-grow relative rounded-2xl 
+            bg-gradient-to-br from-slate-800/80 to-slate-900/80 
+            border border-slate-600/50 backdrop-blur-sm
+            transition-all duration-300 
+            focus-within:border-cyan-500/50 focus-within:shadow-lg focus-within:shadow-cyan-500/10
+            hover:border-slate-500/50
+          ">
+            <textarea
+              ref={textareaRef}
+              value={newMessage}
+              onChange={handleChange}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  sendMessage();
+                }
+              }}
+              className="w-full resize-none overflow-hidden p-4 max-h-40 min-h-[3.5rem] border-none bg-transparent text-slate-100 placeholder-slate-400 focus:ring-0 focus:outline-none rounded-2xl"
+              placeholder="Type a message..."
+              rows={1}
+            />
+            {/* Gradient accent line when focused */}
+            <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-cyan-500 transition-all duration-300 focus-within:w-full group-hover:w-full"></div>
+          </div>
         </div>
 
         {/* SEND BUTTON */}
         <button
           onClick={sendMessage}
           disabled={messageSending || (newMessage.trim() === "" && chosenFiles.length === 0)}
-          className="flex items-center justify-center w-12 h-12 bg-cyan-500 hover:bg-cyan-400 text-white rounded-full shadow-lg shadow-cyan-500/30 transition-all transform hover:scale-105 active:scale-95 disabled:bg-slate-700 disabled:text-slate-500 disabled:opacity-75 shrink-0"
+          className="
+            flex items-center justify-center w-14 h-14 
+            bg-gradient-to-r from-blue-500 to-cyan-500 
+            hover:from-blue-600 hover:to-cyan-600 
+            text-white rounded-2xl 
+            shadow-lg shadow-blue-500/30 
+            transition-all duration-300 
+            transform hover:scale-110 active:scale-95 
+            disabled:from-slate-700 disabled:to-slate-800 
+            disabled:text-slate-500 disabled:shadow-none
+            disabled:scale-100 disabled:cursor-not-allowed
+            backdrop-blur-sm border border-blue-400/20
+            group
+          "
           title="Send Message"
         >
           {messageSending ? (
-            <span className="loading loading-spinner text-white w-6 h-6"></span>
+            <div className="flex items-center justify-center w-6 h-6">
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+            </div>
           ) : (
-            <PaperAirplaneIcon className="w-6 h-6 transform -rotate-45" />
+            <PaperAirplaneIcon className="w-6 h-6 transform -rotate-45 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
           )}
         </button>
 
-
         {/* ERROR MESSAGE */}
         {inputErrorMessage && (
-          <div className="absolute bottom-16 left-1/2 -translate-x-1/2 p-2 px-4 rounded-lg bg-red-800 text-white text-sm shadow-xl z-10">
-            {inputErrorMessage}
+          <div className="absolute bottom-16 left-1/2 -translate-x-1/2 p-3 px-6 rounded-xl bg-gradient-to-r from-red-600 to-red-700 text-white text-sm shadow-2xl shadow-red-500/20 backdrop-blur-sm border border-red-500/30 z-10">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+              {inputErrorMessage}
+            </div>
           </div>
         )}
       </div>
 
-      {/* UPLOAD PROGRESS (full width under bar) */}
+      {/* UPLOAD PROGRESS */}
       {uploadProgress > 0 && (
-        <div className="px-4 pt-2">
-          <progress
-            className="progress progress-info w-full"
-            value={uploadProgress}
-            max="100"
-          />
+        <div className="px-4 pt-2 bg-gradient-to-t from-slate-900/95 to-slate-800/95 backdrop-blur-xl">
+          <div className="w-full bg-slate-700/50 rounded-full h-2 backdrop-blur-sm">
+            <div 
+              className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 transition-all duration-300 shadow-lg shadow-blue-500/30"
+              style={{ width: `${uploadProgress}%` }}
+            ></div>
+          </div>
+          <p className="text-xs text-slate-400 mt-1 text-center">
+            Uploading... {uploadProgress}%
+          </p>
         </div>
       )}
 
-      {/* PREVIEW AREA: images/audio/attachments show UNDER the input bar */}
+      {/* PREVIEW AREA */}
       {chosenFiles.length > 0 && (
-        <div className="px-4 py-3 border-t border-slate-800 bg-gray-900">
+        <div className="px-4 py-3 border-t border-slate-700/50 bg-gradient-to-t from-slate-900/95 to-slate-800/95 backdrop-blur-xl">
           <div className="flex flex-wrap gap-3">
             {chosenFiles.map((file) => (
               <div
                 key={file.file.name + file.file.size}
-                className={
-                  "relative rounded-md bg-slate-800 p-1 flex items-center justify-center overflow-hidden " +
-                  (!isImage(file.file) ? "w-[300px] h-[100px]" : "w-[100px] h-[100px]")
-                }
+                className={`
+                  relative rounded-2xl p-3 flex items-center justify-center overflow-hidden 
+                  backdrop-blur-sm border border-slate-600/50
+                  bg-gradient-to-br from-slate-800/80 to-slate-900/80
+                  hover:border-cyan-500/50 hover:shadow-lg hover:shadow-blue-500/10
+                  transition-all duration-300 transform hover:scale-[1.02]
+                  ${!isImage(file.file) ? "w-[320px] h-[120px]" : "w-[120px] h-[120px]"}
+                `}
               >
                 {isImage(file.file) && (
-                  <img
-                    src={file.url}
-                    alt={file.file.name}
-                    className="w-full h-full object-cover rounded-md"
-                  />
+                  <div className="relative w-full h-full">
+                    <img
+                      src={file.url}
+                      alt={file.file.name}
+                      className="w-full h-full object-cover rounded-xl"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/30 to-transparent rounded-xl"></div>
+                  </div>
                 )}
 
                 {isAudio(file.file) && (
-                  // Assuming CustomAudioPlayer is available globally or imported
                   <CustomAudioPlayer file={file} showVolume={false} />
                 )}
 
                 {!isAudio(file.file) && !isImage(file.file) && (
-                  // Assuming AttachmentPreview is available globally or imported
                   <AttachmentPreview file={file.file} />
                 )}
 
@@ -244,10 +284,18 @@ export default function MessageInput({ conversation = null }) {
                       prev.filter((f) => f.file.name !== file.file.name || f.file.size !== file.file.size)
                     )
                   }
-                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
+                  className="
+                    absolute top-2 right-2 
+                    bg-gradient-to-r from-red-500 to-red-600 
+                    text-white rounded-full w-7 h-7 
+                    flex items-center justify-center
+                    transition-all duration-300 
+                    hover:scale-110 hover:shadow-lg hover:shadow-red-500/30
+                    backdrop-blur-sm border border-red-400/30
+                  "
                   aria-label={`Remove ${file.file.name}`}
                 >
-                  <XMarkIcon className="w-4 h-4 m-1" />
+                  <XMarkIcon className="w-4 h-4" />
                 </button>
               </div>
             ))}

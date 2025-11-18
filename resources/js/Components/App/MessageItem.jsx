@@ -40,56 +40,104 @@ export default function MessageItem({ message, attachmentClick }) {
   // Only show text if message exists and is not null
   const hasText = message.message !== null && message.message !== undefined && message.message !== '';
 
-  const bubbleClasses = `pb-6 chat-bubble relative max-w-xl min-w-[60px] break-words ${
-    isCurrentUserMessage ? "bg-gray-700 text-white" : "chat-bubble-info text-black"
-  }`;
+  const bubbleClasses = `
+    relative max-w-xl min-w-[80px] break-words 
+    rounded-3xl p-4 backdrop-blur-sm border
+    transition-all duration-300 transform hover:scale-[1.01]
+    ${isCurrentUserMessage 
+      ? "bg-gradient-to-br from-blue-500 to-cyan-500 text-white border-blue-400/30 shadow-lg shadow-blue-500/20 ml-12" 
+      : "bg-gradient-to-br from-slate-700/80 to-slate-800/80 text-slate-100 border-slate-600/50 shadow-lg shadow-slate-500/10 mr-12"
+    }
+  `;
 
   const timePositionClass = isCurrentUserMessage 
-    ? "right-2 bottom-1 text-[10px] opacity-60" 
-    : "left-2 bottom-1 text-[10px] opacity-60";
+    ? "right-4 bottom-2 text-xs opacity-70" 
+    : "left-4 bottom-2 text-xs opacity-70";
 
   return (
-    <div className={`chat ${isCurrentUserMessage ? "chat-end flex justify-end items-center" : "chat-start"} mb-4`}>
-      {message.sender_id === currentUserId && (
-        <MessageOptionsDropdown message={message} />
+    <div className={`group relative mb-6 ${isCurrentUserMessage ? "flex justify-end" : "flex justify-start"}`}>
+      
+      {/* Message Options Dropdown - Only show on hover for current user's messages */}
+      {isCurrentUserMessage && (
+        <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 z-10">
+          <MessageOptionsDropdown message={message} />
+        </div>
       )}
-      <div className="flex items-end gap-3">
-        {/* Incoming: avatar on left; Bubble next; Outgoing: bubble first; avatar on right */}
-        {!isCurrentUserMessage && (
-          <div className="flex flex-col items-center">
+
+      <div className={`flex items-end gap-3 ${isCurrentUserMessage ? "flex-row-reverse" : "flex-row"}`}>
+        
+        {/* Avatar with enhanced styling */}
+        <div className="flex flex-col items-center">
+          <div className={`
+            transition-all duration-300 transform
+            ${isCurrentUserMessage ? "hover:scale-110" : "hover:scale-110"}
+          `}>
             <UserAvatar user={message.sender} profile={false} />
           </div>
-        )}
+          {/* Online status indicator */}
+          {message.sender?.is_online && (
+            <div className="w-2 h-2 bg-green-500 rounded-full mt-1 animate-pulse border border-slate-800"></div>
+          )}
+        </div>
 
-        {/* Message bubble */}
+        {/* Message bubble with enhanced styling */}
         <div className={bubbleClasses}>
-          {/* Only render text if it exists */}
-          {hasText && (
-            <div className="prose-sm mb-2">
-              <ReactMarkdown>{message.message}</ReactMarkdown>
+          {/* Sender name for group messages (not current user) */}
+          {!isCurrentUserMessage && message.conversation?.is_group && (
+            <div className="text-xs font-semibold mb-1 opacity-90 text-cyan-300">
+              {message.sender?.name}
             </div>
           )}
           
-          {/* Render attachments if they exist */}
+          {/* Message text with enhanced styling */}
+          {hasText && (
+            <div className="mb-3 prose-sm max-w-none">
+              <ReactMarkdown 
+                components={{
+                  p: ({children}) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
+                  strong: ({children}) => <strong className="font-semibold">{children}</strong>,
+                  em: ({children}) => <em className="italic">{children}</em>,
+                  code: ({children}) => <code className="bg-black/20 px-1 py-0.5 rounded text-sm">{children}</code>,
+                  pre: ({children}) => <pre className="bg-black/30 p-3 rounded-lg overflow-x-auto my-2 text-sm">{children}</pre>,
+                  blockquote: ({children}) => <blockquote className="border-l-4 border-cyan-500/50 pl-3 my-2 opacity-90">{children}</blockquote>
+                }}
+              >
+                {message.message}
+              </ReactMarkdown>
+            </div>
+          )}
+          
+          {/* Attachments */}
           {hasAttachments && (
-            <MessageAttachment
-              attachments={attachments}
-              attachmentClick={attachmentClick}
-            />
+            <div className="mb-3">
+              <MessageAttachment
+                attachments={attachments}
+                attachmentClick={attachmentClick}
+              />
+            </div>
           )}
 
-          {/* Time only (no date) inside the bubble */}
-          <time className={`absolute ${timePositionClass}`}>
+          {/* Time stamp with enhanced styling */}
+          <time className={`absolute ${timePositionClass} text-white/80 font-medium`}>
             {formatMessageTime(message.created_at)}
           </time>
-        </div>
 
-        {isCurrentUserMessage && (
-          <div className="flex flex-col items-center">
-            <UserAvatar user={message.sender} profile={false} />
-          </div>
-        )}
+          {/* Decorative elements */}
+          {isCurrentUserMessage && (
+            <>
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-400/30 rounded-full animate-pulse"></div>
+              <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-cyan-400/30 rounded-full"></div>
+            </>
+          )}
+          {!isCurrentUserMessage && (
+            <>
+              <div className="absolute -top-1 -left-1 w-3 h-3 bg-slate-600/30 rounded-full animate-pulse"></div>
+              <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-slate-500/30 rounded-full"></div>
+            </>
+          )}
+        </div>
       </div>
+
     </div>
   );
 }
