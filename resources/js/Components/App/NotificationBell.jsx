@@ -1,26 +1,22 @@
 import { Menu, Transition } from "@headlessui/react";
 import { BellIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import { Fragment, useMemo } from "react";
+import { Fragment } from "react";
 import { usePage, router } from "@inertiajs/react";
 import axios from "axios";
 import { useEventBus } from "@/EventBus";
 
 export default function NotificationBell({ notifications, setNotifications, unreadCount }) {
   const { emit } = useEventBus();
-  const { props } = usePage();
 
   const removeLocal = (id) => setNotifications((prev) => prev.filter((n) => n.id !== id));
 
   // Mark a single notification read
   const markRead = async (id) => {
-    // 1. Check for synthetic (live) IDs
     if (String(id).startsWith("live-")) {
-        // If it's a live-only notification, just remove it locally
         removeLocal(id);
         return; 
     }
 
-    // 2. If it's a real database ID, send the request to the backend
     try {
         await axios.post(route("notifications.read", id));
         removeLocal(id);
@@ -41,46 +37,43 @@ export default function NotificationBell({ notifications, setNotifications, unre
 
   // Accept a contact request
   const acceptContactRequest = async (notification) => {
-    const requestId = notification.data?.request_id; // Get request ID safely
+    const requestId = notification.data?.request_id;
     
-    // --- SAFETY CHECK (Kept from previous fix) ---
     if (!requestId) {
-        console.error("Failed to accept contact request: Missing 'request_id' in notification data.", notification);
+        console.error("Failed to accept contact request: Missing 'request_id'", notification);
         markRead(notification.id);
         return; 
     }
-    // -------------------------------------
 
     try {
-        // FIX: Changed parameter key from { request: requestId } to { contact: requestId }
-        await axios.post(route("contacts.accept", { contact: requestId })); 
-        await axios.post(route("notifications.read", notification.id));
+        await axios.post(route("contacts.accept", requestId));
         removeLocal(notification.id);
         emit("contact.request.accepted", notification.data);
+        emit("toast.show", "Contact request accepted!");
     } catch (e) {
         console.error("Failed to accept contact request:", e);
+        emit("toast.show", { message: "Failed to accept request", type: "error" });
     }
   };
 
   // Reject a contact request
   const rejectContactRequest = async (notification) => {
-    const requestId = notification.data?.request_id; // Get request ID safely
+    const requestId = notification.data?.request_id;
 
-    // Add similar safety check for reject
     if (!requestId) {
-        console.error("Failed to reject contact request: Missing 'request_id' in notification data.", notification);
+        console.error("Failed to reject contact request: Missing 'request_id'", notification);
         markRead(notification.id);
         return;
     }
 
     try {
-        // FIX: Changed parameter key from { request: requestId } to { contact: requestId }
-        await axios.post(route("contacts.reject", { contact: requestId })); 
-        await axios.post(route("notifications.read", notification.id));
+        await axios.post(route("contacts.reject", requestId));
         removeLocal(notification.id);
         emit("contact.request.rejected", notification.data);
+        emit("toast.show", "Contact request rejected");
     } catch (e) {
         console.error("Failed to reject contact request:", e);
+        emit("toast.show", { message: "Failed to reject request", type: "error" });
     }
   };
 
@@ -88,13 +81,11 @@ export default function NotificationBell({ notifications, setNotifications, unre
   const openConversationFromNotification = async (n) => {
     try {
       if (n.type === "MessageReceived") {
-        const convType = n.data.conversation_type; // "group" or "user"
+        const convType = n.data.conversation_type;
         const convId = n.data.conversation_id;
-        const routeName = convType === "group" ? "chat.group" : "chat.user";
 
-        await markRead(n.id); // ✅ safe for live and DB notifications
+        await markRead(n.id);
 
-        // Navigate
         if (convType === "group") {
           router.visit(route("chat.group", { group: convId }), { preserveState: false });
         } else {
@@ -105,6 +96,37 @@ export default function NotificationBell({ notifications, setNotifications, unre
       }
     } catch (e) {
       console.error("Failed to open conversation:", e);
+    }
+  };
+
+  // Helper to get notification display text
+  const getNotificationText = (n) => {
+    switch(n.type) {
+      case "ContactRequested":
+        return {
+          title: `${n.data.requester_name} sent you a contact request`,
+          summary: n.data.name_proposed ? `They want to be added as "${n.data.name_proposed}"` : ''
+        };
+      case "ContactAccepted":
+        return {
+          title: `${n.data.requester_name} accepted your contact request`,
+          summary: "You can now chat with them!"
+        };
+      case "ContactRejected":
+        return {
+          title: `${n.data.rejector_name} rejected your contact request`,
+          summary: ''
+        };
+      case "MessageReceived":
+        return {
+          title: `Message from ${n.data.sender?.name ?? "Unknown"}`,
+          summary: n.data.message_preview ?? ''
+        };
+      default:
+        return {
+          title: n.data.title ?? "Notification",
+          summary: n.data.summary ?? n.data.message ?? ''
+        };
     }
   };
 
@@ -140,7 +162,6 @@ export default function NotificationBell({ notifications, setNotifications, unre
                       <button 
                         onClick={() => {
                           markAllRead();
-                          // Close dropdown after marking all as read
                           close();
                         }} 
                         className="text-xs text-gray-500 hover:underline"
@@ -151,7 +172,6 @@ export default function NotificationBell({ notifications, setNotifications, unre
                     <button 
                       onClick={() => {
                         setNotifications([]);
-                        // Close dropdown after clearing notifications
                         close();
                       }} 
                       className="text-xs text-gray-400 hover:text-gray-600"
@@ -165,69 +185,78 @@ export default function NotificationBell({ notifications, setNotifications, unre
                   <div className="p-4 text-sm text-gray-500">You're all caught up.</div>
                 )}
 
-                {notifications.map((n) => (
-                  <Menu.Item key={n.id}>
-                    {({ active, close: closeItem }) => (
-                      <div className={`px-3 py-2 border-b last:border-none dark:border-gray-700 ${active ? 'bg-gray-50 dark:bg-gray-700' : ''}`}>
-                        <div className="flex items-start gap-2">
-                          <div 
-                            className="flex-1 cursor-pointer" 
-                            onClick={() => {
-                              openConversationFromNotification(n);
-                              closeItem();
-                            }}
-                          >
-                            <div className="text-sm font-medium text-gray-800 dark:text-gray-100">
-                              {n.type === "ContactRequested" ? `${n.data.requester_name} sent you a contact request` :
-                                n.type === "MessageReceived" ? `Message from ${n.data.sender?.name ?? "Unknown"}` :
-                                n.data.title ?? "Notification"}
+                {notifications.map((n) => {
+                  const { title, summary } = getNotificationText(n);
+                  
+                  return (
+                    <Menu.Item key={n.id}>
+                      {({ active, close: closeItem }) => (
+                        <div className={`px-3 py-2 border-b last:border-none dark:border-gray-700 ${active ? 'bg-gray-50 dark:bg-gray-700' : ''}`}>
+                          <div className="flex items-start gap-2">
+                            <div 
+                              className="flex-1 cursor-pointer" 
+                              onClick={() => {
+                                openConversationFromNotification(n);
+                                closeItem();
+                              }}
+                            >
+                              <div className="text-sm font-medium text-gray-800 dark:text-gray-100">
+                                {title}
+                              </div>
+                              {summary && (
+                                <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                  {summary}
+                                </div>
+                              )}
+                              <div className="text-xs text-gray-400 mt-1">
+                                {new Date(n.created_at).toLocaleString()}
+                              </div>
                             </div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                              {n.data.summary ?? n.data.message ?? n.data.message_preview ?? ''}
-                            </div>
-                            <div className="text-xs text-gray-400 mt-1">{new Date(n.created_at).toLocaleString()}</div>
-                          </div>
 
-                          <div className="flex flex-col items-end gap-2">
-                            {n.type === "ContactRequested" && (
-                              <>
+                            <div className="flex flex-col items-end gap-2">
+                              {n.type === "ContactRequested" && (
+                                <>
+                                  <button 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      acceptContactRequest(n);
+                                      closeItem();
+                                    }} 
+                                    className="text-xs px-2 py-1 rounded bg-green-600 text-white hover:bg-green-700"
+                                  >
+                                    Accept
+                                  </button>
+                                  <button 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      rejectContactRequest(n);
+                                      closeItem();
+                                    }} 
+                                    className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+                                  >
+                                    Reject
+                                  </button>
+                                </>
+                              )}
+                              {(n.type === "ContactAccepted" || n.type === "ContactRejected" || n.type === "MessageReceived") && (
                                 <button 
-                                  onClick={() => {
-                                    acceptContactRequest(n);
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    markRead(n.id);
                                     closeItem();
                                   }} 
-                                  className="text-xs px-2 py-1 rounded bg-green-600 text-white"
+                                  className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
                                 >
-                                  Accept
+                                  Mark read
                                 </button>
-                                <button 
-                                  onClick={() => {
-                                    rejectContactRequest(n);
-                                    closeItem();
-                                  }} 
-                                  className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200"
-                                >
-                                  Reject
-                                </button>
-                              </>
-                            )}
-                            {n.type === "MessageReceived" && (
-                              <button 
-                                onClick={() => {
-                                  markRead(n.id);
-                                  closeItem();
-                                }} 
-                                className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200"
-                              >
-                                Mark read
-                              </button>
-                            )}
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )}
-                  </Menu.Item>
-                ))}
+                      )}
+                    </Menu.Item>
+                  );
+                })}
               </Menu.Items>
             </Transition>
           </>

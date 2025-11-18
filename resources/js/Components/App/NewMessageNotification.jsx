@@ -18,7 +18,7 @@ export default function NewMessageNotification({  }) {
             });
             setTimeout(() => {
                 setToasts((prevToasts) => prevToasts.filter((toast) => toast.id !== uuid));
-            }, 5000);
+            }, 3000);
         });
     }, [on]);
 
