@@ -126,16 +126,12 @@ export default function ConversationItem({
         )}
         
         {/* Status Indicators */}
-        <div className="absolute -bottom-1 -right-1 flex items-center justify-center">
-          {conversation.is_group ? (
+          {conversation.is_group && (
             <div className="w-5 h-5 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center border-2 border-slate-800 shadow-lg">
               <UserGroupIcon className="w-2.5 h-2.5 text-white" />
             </div>
-          ) : online ? (
-            <div className="w-3 h-3 bg-green-500 rounded-full border-2 border-slate-800 shadow-lg animate-pulse"></div>
-          ) : null}
+          )}
         </div>
-      </div>
 
       {/* Conversation Content */}
       <div className={`flex-1 min-w-0 ${isBlocked ? 'opacity-80' : ''}`}>

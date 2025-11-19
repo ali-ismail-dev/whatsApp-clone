@@ -1,6 +1,6 @@
 export default function UserAvatar({ user, online = null, profile = false }) {
   // sizes: profile = larger; otherwise small (used in lists)
-  const sizeClass = profile ? "w-32 h-32" : "w-10 h-10";
+  const sizeClass = profile ? "w-32 h-32" : "w-12 h-12";
   const innerSizeClass = profile ? "p-1" : "";
   const textSizeClass = profile ? "text-4xl" : "text-sm";
 
