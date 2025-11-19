@@ -1,5 +1,5 @@
 import { isAudio, isImage, isPreviewable, isPDF, isVideo } from "@/Helpers";
-import { ArrowDownTrayIcon, PlayCircleIcon, PaperClipIcon } from "@heroicons/react/24/outline";
+import { ArrowDownTrayIcon, PlayCircleIcon, PaperClipIcon, MusicalNoteIcon } from "@heroicons/react/24/outline";
 
 export default function MessageAttachment({ attachments = [], attachmentClick }) {
   if (!attachments || attachments.length === 0) return null;
@@ -8,29 +8,37 @@ export default function MessageAttachment({ attachments = [], attachmentClick })
     <div className="mt-2 flex flex-wrap justify-end gap-3">
       {attachments.map((attachment, index) => {
         const isRectangular = (!isImage(attachment) && !isVideo(attachment));
+        const isClickable = isPreviewable(attachment) && !isAudio(attachment);
+        const key = attachment.id ?? `${attachment.url}-${index}`;
 
         return (
           <div
-            key={attachment.id ?? attachment.url ?? index}
-            onClick={() => attachmentClick && attachmentClick(attachments, index)}
+            key={key}
+            // Only trigger preview modal if it is previewable AND NOT audio
+            onClick={() => isClickable && attachmentClick && attachmentClick(attachments, index)}
             className={`
-              group relative cursor-pointer overflow-hidden transition-all rounded-xl
+              group relative overflow-hidden transition-all rounded-xl
               border border-slate-600/50 backdrop-blur-sm
-              hover:border-cyan-500/50 hover:shadow-lg hover:shadow-blue-500/10
-              transform hover:scale-[1.02] transition-all duration-300
-              ${isRectangular
+              ${isClickable ? "cursor-pointer hover:border-cyan-500/50 hover:shadow-lg hover:shadow-blue-500/10 transform hover:scale-[1.02] duration-300" : "cursor-default"}
+              ${isRectangular && !isAudio(attachment) 
                 ? "flex flex-row w-[300px] h-[70px] items-center justify-between bg-gradient-to-br from-slate-800/80 to-slate-900/80"
-                : "flex flex-col w-40 aspect-square items-center justify-center bg-gradient-to-br from-slate-800/80 to-slate-900/80"
+                : isAudio(attachment)
+                  ? "flex flex-row w-full max-w-xs h-auto items-center justify-between p-3 bg-slate-800/80" // Refined audio styling: no hover scale on audio
+                  : "flex flex-col w-40 aspect-square items-center justify-center bg-gradient-to-br from-slate-800/80 to-slate-900/80"
               }`}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => e.key === "Enter" && attachmentClick && attachmentClick(attachments, index)}
+            // Remove role="button" and tabIndex for audio to avoid accessibility confusion with inline controls
+            role={isClickable ? "button" : undefined}
+            tabIndex={isClickable ? 0 : undefined}
+            onKeyDown={(e) => e.key === "Enter" && isClickable && attachmentClick && attachmentClick(attachments, index)}
           >
-            {/* Gradient overlay on hover */}
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 to-cyan-500/0 group-hover:from-blue-500/5 group-hover:to-cyan-500/5 transition-all duration-300 z-10"></div>
+            {/* Gradient overlay on hover (only for previewable items) */}
+            {isClickable && (
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 to-cyan-500/0 group-hover:from-blue-500/5 group-hover:to-cyan-500/5 transition-all duration-300 z-10"></div>
+            )}
+            
 
-            {/* download button with glass morphism */}
-            {!isAudio(attachment) && !isPDF(attachment) && (
+            {/* download button with glass morphism - Hide for Images/Videos/PDFs/Audio which have specific download paths or inline controls */}
+            {!isPreviewable(attachment) && (
               <a
                 onClick={(ev) => ev.stopPropagation()}
                 download
@@ -75,28 +83,58 @@ export default function MessageAttachment({ attachments = [], attachmentClick })
               </>
             )}
 
-            {/* AUDIO: styled audio controls */}
+       {/* AUDIO: Inline player (not clickable/no scale hover effect) */}
             {isAudio(attachment) && (
-              <div className="w-full h-full flex items-center justify-center px-3">
-                <div className="w-full bg-slate-700/50 backdrop-blur-sm rounded-lg p-3 border border-slate-600/50">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center">
-                      <PlayCircleIcon className="w-4 h-4 text-white" />
+              <div 
+                className="flex w-full items-center gap-3"
+                // Prevent click handler on outer div from firing when clicking inner elements
+                onClick={(ev) => ev.stopPropagation()}
+              >
+                <div className="flex-1 min-w-0">
+                  {/* Title and Icon */}
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-7 h-7 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg shadow-emerald-500/20">
+                      <MusicalNoteIcon className="w-4 h-4 text-white" />
                     </div>
                     <span className="text-slate-200 text-sm font-medium truncate flex-1">
-                      {attachment.name || "Audio file"}
+                      {attachment.name || "Audio message"}
                     </span>
                   </div>
-                  <audio controls src={attachment.url} className="w-full h-8 [&::-webkit-media-controls-panel]:bg-slate-600" />
+                  {/* The actual audio player */}
+                  {attachment.url ? (
+                    <audio 
+                      controls 
+                      src={attachment.url} 
+                      className="w-full h-8 block rounded-lg bg-slate-700/50" // Apply styling to the audio element itself
+                    />
+                  ) : (
+                    <div className="text-red-400 text-xs italic bg-slate-700/50 p-2 rounded-lg">
+                      Error: Audio URL missing.
+                    </div>
+                  )}
                 </div>
+                {/* Download Button for Audio */}
+                <a
+                  href={attachment.url}
+                  download={attachment.name}
+                  onClick={(ev) => ev.stopPropagation()}
+                  className="p-2 rounded-full flex-shrink-0 bg-slate-700/50 hover:bg-cyan-500 transition-all duration-300 hover:scale-110 backdrop-blur-sm border border-slate-600/50"
+                  title="Download Audio"
+                >
+                  <ArrowDownTrayIcon className="w-5 h-5 text-slate-300 hover:text-white" />
+                </a>
               </div>
-            )}
+            )}     
+            
 
             {/* PDF: enhanced styling */}
             {isPDF(attachment) && (
               <div className="w-full flex items-center gap-3 py-3 px-4 rounded-xl bg-gradient-to-br from-slate-800/80 to-slate-900/80">
                 <div className="flex-shrink-0 relative">
-                  <img src="/img/pdf.png" alt="PDF" className="w-12 h-14 object-contain filter drop-shadow-lg" />
+                  {/* Placeholder for PDF icon */}
+                  <svg className="w-12 h-14 object-contain text-red-500 filter drop-shadow-lg" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                  </svg>
                   <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
                 </div>
 
@@ -107,14 +145,10 @@ export default function MessageAttachment({ attachments = [], attachmentClick })
                   </p>
                 </div>
 
-                <a
-                  href={attachment.url}
-                  download
-                  onClick={(ev) => ev.stopPropagation()}
-                  className="p-2 rounded-lg bg-slate-700/50 hover:bg-cyan-500 transition-all duration-300 hover:scale-110 backdrop-blur-sm border border-slate-600/50"
-                >
-                  <ArrowDownTrayIcon className="w-5 h-5 text-slate-300 hover:text-white" />
-                </a>
+                {/* PDF download button is moved to the modal/preview for consistency */}
+                <div className="p-2 rounded-lg bg-slate-700/50 text-slate-300 backdrop-blur-sm border border-slate-600/50">
+                   <ArrowDownTrayIcon className="w-5 h-5 opacity-50" />
+                </div>
               </div>
             )}
 
