@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Group;
 use App\Models\Message;
+use App\Models\Contact; // <-- NEW: Import Contact model
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 use App\Models\Conversation;
@@ -25,14 +26,47 @@ class MessageController extends Controller
             return redirect()->route('login');
         }
 
+        $currentUser = Auth::user(); // Use a clear variable for the authenticated user
+
         \Log::info('Fetching messages for conversation between users:', [
-            'auth_id' => Auth::id(),
+            'auth_id' => $currentUser->id,
             'user_id' => $user->id
         ]);
 
-        Log::info('Auth user ID: ' . Auth::id());
-        Log::info('Target user ID: ' . $user->id);
-        
+        // 1. --- LOGIC TO FETCH CUSTOM CONTACT NAME ---
+        // Find the accepted contact record between the current user and the target user
+        $contactRecord = Contact::where(function ($query) use ($currentUser, $user) {
+            $query->where('requester_id', $currentUser->id)
+                  ->where('requested_id', $user->id);
+        })->orWhere(function ($query) use ($currentUser, $user) {
+            $query->where('requester_id', $user->id)
+                  ->where('requested_id', $currentUser->id);
+        })
+        ->where('status', 'accepted')
+        ->first();
+
+        // Create the base conversation array (which is the target user's data)
+        $selectedConversation = $user->toConversationArray();
+
+        // 2. Attach the custom name if a contact record exists
+        if ($contactRecord) {
+            if ($contactRecord->requester_id === $currentUser->id) {
+                // Current user is the requester, use their set name
+                $selectedConversation['contact_name'] = $contactRecord->requester_name;
+            } else {
+                // Current user is the requested party, use their set name
+                $selectedConversation['contact_name'] = $contactRecord->requested_name;
+            }
+
+            // Set the primary 'name' property to the custom name for display in the sidebar/list.
+            // This is crucial to maintain consistency across the app on refresh.
+            if (!empty($selectedConversation['contact_name'])) {
+                 $selectedConversation['name'] = $selectedConversation['contact_name'];
+            }
+        }
+        // --- END LOGIC ---
+
+        // Original message fetching query
         $query = Message::with(['sender', 'receiver', 'attachments'])
             ->where(function($q) use ($user) {
                 $q->where('sender_id', Auth::id())
@@ -53,7 +87,8 @@ class MessageController extends Controller
         ]);
 
         return inertia('Home', [
-            'selectedConversation' => $user->toConversationArray(),
+            // Use the enriched array, which now includes the contact_name for persistence
+            'selectedConversation' => $selectedConversation, 
             'messages' => MessageResource::collection($messages)
         ]);
     }

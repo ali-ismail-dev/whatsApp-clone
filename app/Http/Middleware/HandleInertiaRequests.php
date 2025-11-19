@@ -85,12 +85,23 @@ class HandleInertiaRequests extends Middleware
                         return null;
                     }
 
+                    // --- FIX APPLIED HERE ---
+                    $isRequester = $c->requester_id === $user->id;
+                    
+                    // Determine the display name: prioritize the user's custom name for the contact, 
+                    // otherwise fall back to the other user's registered name.
+                    $displayName = $isRequester 
+                        ? ($c->requester_name ?? $other->name) 
+                        : ($c->requested_name ?? $other->name);
+
+                    // ------------------------
+
                     return [
                         // id of the other user (this becomes the conversation id for user-to-user)
                         'id' => $other->id,
                         // name to show in sidebar (contact local name if provided, otherwise the user's name)
-                        'name' => $c->name ?? $other->name,
-                        'added_by_me' => $c->requester_id === $user->id,
+                        'name' => $displayName,
+                        'added_by_me' => $isRequester,
                         'contact_record_id' => $c->id,
                         // include a nested minimal user object (fields your frontend expects)
                         'user' => [

@@ -6,6 +6,7 @@ use App\Models\Contact;
 use App\Models\User;
 use App\Notifications\ContactRequested;
 use App\Notifications\ContactAccepted;
+use App\Events\ContactNameUpdated; // <--- Import the new event
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -40,7 +41,7 @@ class ContactController extends Controller
             } else {
                 $other = $c->requester;
                 $otherId = $other->id;
-                $displayName = $c->requester_name ?? $other->name;
+                $displayName = $c->requested_name ?? $other->name; // Fix: Should use requested_name here
                 $addedByMe = false;
             }
 
@@ -202,12 +203,24 @@ class ContactController extends Controller
             'name' => ['required', 'string', 'max:255'],
         ]);
 
+        $otherId = ($contact->requester_id === $user->id) 
+            ? $contact->requested_id 
+            : $contact->requester_id;
+        
+        $newName = $data['name'];
+        
         // Update the appropriate name field based on who the current user is
         if ($contact->requester_id === $user->id) {
-            $contact->update(['requester_name' => $data['name']]);
+            $contact->update(['requester_name' => $newName]);
         } else {
-            $contact->update(['requested_name' => $data['name']]);
+            $contact->update(['requested_name' => $newName]);
         }
+
+        // --- NEW REAL-TIME EVENT DISPATCH ---
+        // Dispatch event to update the name for the current user in the frontend immediately
+        // The event payload includes the ID of the *other* user in the conversation
+        ContactNameUpdated::dispatch($user->id, $otherId, $newName);
+        // ------------------------------------
 
         return $request->wantsJson()
             ? response()->json(['message' => 'Contact name updated', 'contact' => $contact])
