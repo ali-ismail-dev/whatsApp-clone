@@ -55,45 +55,18 @@ class User extends Authenticatable
     }
 
     public static function getUsersExceptUser(User $exceptUser)
-    {
-        $isAdmin = $exceptUser->is_admin;
+{
+    $isAdmin = $exceptUser->is_admin;
 
-        // For admins: show all users
-        if ($isAdmin) {
-            $query = User::select(['users.*', 'messages.message as last_message', 'messages.created_at as last_message_date', 'users.blocked_at as blocked_at'])
-                ->where('users.id', '!=', $exceptUser->id)
-                ->leftJoin('conversations', function($join) use ($exceptUser) {
-                    $join->on(function($subJoin) use ($exceptUser) {
-                        $subJoin->on('conversations.user_id1', '=', 'users.id')
-                                ->where('conversations.user_id2', '=', $exceptUser->id);
-                    })->orOn(function($subJoin) use ($exceptUser) {
-                        $subJoin->on('conversations.user_id2', '=', 'users.id')
-                                ->where('conversations.user_id1', '=', $exceptUser->id);
-                    });
-                })
-                ->leftJoin('messages', 'messages.id', '=', 'conversations.last_message_id')
-                ->orderByDesc('messages.created_at')
-                ->orderBy('users.name');
-
-            return $query->get();
-        }
-
-        // For non-admins: show only accepted contacts
-        $query = User::select(['users.*', 'messages.message as last_message', 'messages.created_at as last_message_date', 'users.blocked_at as blocked_at'])
+    // For admins: show all users
+    if ($isAdmin) {
+        $query = User::select([
+            'users.*', 
+            'messages.message as last_message', 
+            'messages.created_at as last_message_date', 
+            'users.blocked_at as blocked_at'
+        ])
             ->where('users.id', '!=', $exceptUser->id)
-            ->join('contacts', function($join) use ($exceptUser) {
-                $join->on(function($subJoin) use ($exceptUser) {
-                    $subJoin->on('contacts.requested_id', '=', 'users.id')
-                            ->where('contacts.requester_id', '=', $exceptUser->id);
-                })->orOn(function($subJoin) use ($exceptUser) {
-                    $subJoin->on('contacts.requester_id', '=', 'users.id')
-                            ->where('contacts.requested_id', '=', $exceptUser->id);
-                });
-            })
-            ->where(function($q) {
-                $q->where('contacts.status', 'accepted')
-                  ->orWhereNotNull('contacts.accepted_at');
-            })
             ->leftJoin('conversations', function($join) use ($exceptUser) {
                 $join->on(function($subJoin) use ($exceptUser) {
                     $subJoin->on('conversations.user_id1', '=', 'users.id')
@@ -109,6 +82,50 @@ class User extends Authenticatable
 
         return $query->get();
     }
+
+    // For non-admins: show only accepted contacts with custom names
+  $query = User::select([
+    'users.*', 
+    'messages.message as last_message', 
+    'messages.created_at as last_message_date', 
+    'users.blocked_at as blocked_at',
+    'contacts.id as contact_record_id',  // ← ADD THIS
+    // Select the appropriate custom name based on current user's role in the contact
+    \DB::raw("CASE 
+        WHEN contacts.requester_id = {$exceptUser->id} THEN contacts.requester_name
+        WHEN contacts.requested_id = {$exceptUser->id} THEN contacts.requested_name
+        ELSE NULL 
+    END as custom_contact_name")
+])
+        ->where('users.id', '!=', $exceptUser->id)
+        ->join('contacts', function($join) use ($exceptUser) {
+            $join->on(function($subJoin) use ($exceptUser) {
+                $subJoin->on('contacts.requested_id', '=', 'users.id')
+                        ->where('contacts.requester_id', '=', $exceptUser->id);
+            })->orOn(function($subJoin) use ($exceptUser) {
+                $subJoin->on('contacts.requester_id', '=', 'users.id')
+                        ->where('contacts.requested_id', '=', $exceptUser->id);
+            });
+        })
+        ->where(function($q) {
+            $q->where('contacts.status', 'accepted')
+              ->orWhereNotNull('contacts.accepted_at');
+        })
+        ->leftJoin('conversations', function($join) use ($exceptUser) {
+            $join->on(function($subJoin) use ($exceptUser) {
+                $subJoin->on('conversations.user_id1', '=', 'users.id')
+                        ->where('conversations.user_id2', '=', $exceptUser->id);
+            })->orOn(function($subJoin) use ($exceptUser) {
+                $subJoin->on('conversations.user_id2', '=', 'users.id')
+                        ->where('conversations.user_id1', '=', $exceptUser->id);
+            });
+        })
+        ->leftJoin('messages', 'messages.id', '=', 'conversations.last_message_id')
+        ->orderByDesc('messages.created_at')
+        ->orderBy('users.name');
+
+    return $query->get();
+}
 
     public function toConversationArray()
     {
@@ -158,7 +175,9 @@ class User extends Authenticatable
         return [
             'is_user' => true,
             'id' => $this->id,
-            'name' => $this->name,
+            'contact_record_id' => $this->contact_record_id ?? null,  // ← ADD THIS
+
+            'name' => $this->custom_contact_name ?? $this->name,
             'is_group' => false,
             'is_admin' => (bool) $this->is_admin,
             'avatar_url' => $this->avatar ? Storage::url($this->avatar) : null,

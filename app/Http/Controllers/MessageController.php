@@ -159,6 +159,7 @@ class MessageController extends Controller
 
         $message->delete();
 
+        $lastMessage = null;
         if ($group) {
             $group = Group::find($group->id);
             $lastMessage = $group->lastmessage;

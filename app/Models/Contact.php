@@ -13,7 +13,8 @@ class Contact extends Model
     protected $fillable = [
         'requester_id',
         'requested_id',
-        'name',
+        'requester_name',  // changed from 'name'
+        'requested_name', 
         'status',
         'accepted_at',
     ];

@@ -36,8 +36,9 @@ export default function EditContactNameModal({ show = false, onClose = () => {},
       // Find the contact record ID
       // We need to get the contact record, not just the user ID
       const response = await axios.put(
-        route("contacts.update", conversation.id),
-        { name: data.name }
+    route("contacts.update", conversation.contact_record_id),
+    { name: data.name }
+
       );
 
       emit("toast.show", { 

@@ -24,7 +24,7 @@ class ContactController extends Controller
         // likely unused if the frontend relies on the Inertia shared props.
         $contacts = Contact::where(function ($q) use ($user) {
             $q->where('requester_id', $user->id)
-              ->orWhere('requested_id', $user->id);
+                ->orWhere('requested_id', $user->id);
         })->where('status', 'accepted')->with(['requester', 'requested'])->get();
 
         // The following duplication logic is generally redundant if the DB is fixed 
@@ -35,12 +35,12 @@ class ContactController extends Controller
             if ($c->requester_id === $user->id) {
                 $other = $c->requested;
                 $otherId = $other->id;
-                $displayName = $c->name ?? $other->name;
+                $displayName = $c->requester_name ?? $other->name;
                 $addedByMe = true;
             } else {
                 $other = $c->requester;
                 $otherId = $other->id;
-                $displayName = $c->name ?? $other->name;
+                $displayName = $c->requester_name ?? $other->name;
                 $addedByMe = false;
             }
 
@@ -90,7 +90,7 @@ class ContactController extends Controller
                 'requester_id' => $c->requester_id,
                 'requester_name' => $c->requester->name,
                 'requester_email' => $c->requester->email,
-                'name_proposed' => $c->name,
+                'name_proposed' => $c->requester_name,
                 'status' => $c->status,
                 'created_at' => $c->created_at->toDateTimeString(),
             ]);
@@ -102,190 +102,195 @@ class ContactController extends Controller
 
     // Send a contact request
     public function store(Request $request)
-{
-    $user = Auth::user();
+    {
+        $user = Auth::user();
 
-    $data = $request->validate([
-        'email' => ['required','email'],
-        'name' => ['nullable','string','max:255'],
-    ]);
+        $data = $request->validate([
+            'email' => ['required', 'email'],
+            'name' => ['nullable', 'string', 'max:255'],
+        ]);
 
-    if ($data['email'] === $user->email) {
-        return $request->wantsJson()
-            ? response()->json(['message' => "You can't add yourself."], 422)
-            : back()->withErrors(['email' => "You can't add yourself."]);
-    }
-
-    $target = User::where('email', $data['email'])->first();
-    if (!$target) {
-        return $request->wantsJson()
-            ? response()->json(['message' => "This user doesn't have an account on our platform."], 404)
-            : back()->withErrors(['email' => "This user doesn't have an account on our platform."]);
-    }
-    
-    // Check any existing contact record in either direction
-    $existing = Contact::where(function($q) use ($user, $target) {
-        $q->where('requester_id', $user->id)->where('requested_id', $target->id);
-    })->orWhere(function($q) use ($user, $target) {
-        $q->where('requester_id', $target->id)->where('requested_id', $user->id);
-    })->first();
-
-    if ($existing) {
-        // CASE 1: Already accepted
-        if ($existing->status === 'accepted') {
+        if ($data['email'] === $user->email) {
             return $request->wantsJson()
-                ? response()->json(['message' => 'This user is already in your contacts.'], 200)
-                : back()->with('info', 'This user is already in your contacts.');
+                ? response()->json(['message' => "You can't add yourself."], 422)
+                : back()->withErrors(['email' => "You can't add yourself."]);
         }
 
-        // CASE 2: Pending request
-        if ($existing->status === 'pending') {
-            // You sent the request
-            if ($existing->requester_id === $user->id) {
+        $target = User::where('email', $data['email'])->first();
+        if (!$target) {
+            return $request->wantsJson()
+                ? response()->json(['message' => "This user doesn't have an account on our platform."], 404)
+                : back()->withErrors(['email' => "This user doesn't have an account on our platform."]);
+        }
+
+        // Check any existing contact record in either direction
+        $existing = Contact::where(function ($q) use ($user, $target) {
+            $q->where('requester_id', $user->id)->where('requested_id', $target->id);
+        })->orWhere(function ($q) use ($user, $target) {
+            $q->where('requester_id', $target->id)->where('requested_id', $user->id);
+        })->first();
+
+        if ($existing) {
+            // CASE 1: Already accepted
+            if ($existing->status === 'accepted') {
                 return $request->wantsJson()
-                    ? response()->json(['message' => "You already sent a request to {$target->email}."], 200)
-                    : back()->with('info', "You already sent a request to {$target->email}.");
-            } 
-            // They sent you a request
-            else {
-                return $request->wantsJson()
-                    ? response()->json(['message' => "Check your contact requests, you have a pending request from {$target->email}."], 409)
-                    : back()->with('warning', "Check your contact requests, you have a pending request from {$target->email}.");
+                    ? response()->json(['message' => 'This user is already in your contacts.'], 200)
+                    : back()->with('info', 'This user is already in your contacts.');
+            }
+
+            // CASE 2: Pending request
+            if ($existing->status === 'pending') {
+                // You sent the request
+                if ($existing->requester_id === $user->id) {
+                    return $request->wantsJson()
+                        ? response()->json(['message' => "You already sent a request to {$target->email}."], 200)
+                        : back()->with('info', "You already sent a request to {$target->email}.");
+                }
+                // They sent you a request
+                else {
+                    return $request->wantsJson()
+                        ? response()->json(['message' => "Check your contact requests, you have a pending request from {$target->email}."], 409)
+                        : back()->with('warning', "Check your contact requests, you have a pending request from {$target->email}.");
+                }
+            }
+
+            // CASE 3: Rejected request
+            if ($existing->status === 'rejected') {
+                // You were rejected
+                if ($existing->requester_id === $user->id) {
+                    return $request->wantsJson()
+                        ? response()->json(['message' => "This contact already rejected your request."], 403)
+                        : back()->with('error', "This contact already rejected your request.");
+                }
+                // You rejected them - allow them to request again by deleting old record
+                else {
+                    $existing->delete();
+                    // Continue to create new request below
+                }
             }
         }
 
-        // CASE 3: Rejected request
-        if ($existing->status === 'rejected') {
-            // You were rejected
-            if ($existing->requester_id === $user->id) {
-                return $request->wantsJson()
-                    ? response()->json(['message' => "This contact already rejected your request."], 403)
-                    : back()->with('error', "This contact already rejected your request.");
-            }
-            // You rejected them - allow them to request again by deleting old record
-            else {
-                $existing->delete();
-                // Continue to create new request below
-            }
-        }
-    }
+        // No conflicting record - create new pending request
+        $contact = Contact::create([
+            'requester_id' => $user->id,
+            'requested_id' => $target->id,
+            'requester_name' => $data['name'] ?? null,
+            'status' => 'pending',
+        ]);
 
-    // No conflicting record - create new pending request
-    $contact = Contact::create([
-        'requester_id' => $user->id,
-        'requested_id' => $target->id,
-        'name' => $data['name'] ?? null,
-        'status' => 'pending',
-    ]);
+        // Notify the target user
+        $target->notify(new ContactRequested($user, $contact));
 
-    // Notify the target user
-    $target->notify(new ContactRequested($user, $contact));
-
-    return $request->wantsJson()
-        ? response()->json(['message' => 'Contact request sent.', 'contact' => $contact])
-        : back()->with('success', 'Contact request sent.');
-}
-
-// Update contact display name
-public function update(Request $request, Contact $contact)
-{
-    $user = Auth::user();
-
-    // Only the requester (person who added the contact) can update the display name
-    if ($contact->requester_id !== $user->id) {
         return $request->wantsJson()
-            ? response()->json(['message' => 'Unauthorized'], 403)
-            : back()->with('error', 'Unauthorized');
+            ? response()->json(['message' => 'Contact request sent.', 'contact' => $contact])
+            : back()->with('success', 'Contact request sent.');
     }
 
-    $data = $request->validate([
-        'name' => ['required', 'string', 'max:255'],
-    ]);
+    // Update contact display name
+    public function update(Request $request, Contact $contact)
+    {
+        $user = Auth::user();
 
-    $contact->update(['name' => $data['name']]);
+        // Check if user is part of this contact relationship
+        if ($contact->requester_id !== $user->id && $contact->requested_id !== $user->id) {
+            return $request->wantsJson()
+                ? response()->json(['message' => 'Unauthorized'], 403)
+                : back()->with('error', 'Unauthorized');
+        }
 
-    return $request->wantsJson()
-        ? response()->json(['message' => 'Contact name updated', 'contact' => $contact])
-        : back()->with('success', 'Contact name updated.');
-}
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+        ]);
+
+        // Update the appropriate name field based on who the current user is
+        if ($contact->requester_id === $user->id) {
+            $contact->update(['requester_name' => $data['name']]);
+        } else {
+            $contact->update(['requested_name' => $data['name']]);
+        }
+
+        return $request->wantsJson()
+            ? response()->json(['message' => 'Contact name updated', 'contact' => $contact])
+            : back()->with('success', 'Contact name updated.');
+    }
 
 
     // Accept a contact request
     // Uses Route Model Binding: Contact $contact
-   public function accept(Request $request, Contact $contact)
-{
-    $user = Auth::user();
+    public function accept(Request $request, Contact $contact)
+    {
+        $user = Auth::user();
 
-    // 1. Check if the user is the requested party
-    if ($contact->requested_id !== $user->id) {
+        // 1. Check if the user is the requested party
+        if ($contact->requested_id !== $user->id) {
+            return $request->wantsJson()
+                ? response()->json(['message' => 'Unauthorized'], 403)
+                : back()->with('error', 'Unauthorized');
+        }
+
+        // 2. If already accepted, return success (idempotent)
+        if ($contact->status === 'accepted') {
+            return $request->wantsJson()
+                ? response()->json(['message' => 'Contact already accepted.'], 200)
+                : back()->with('success', 'Contact already accepted.');
+        }
+
+        // Use a transaction to ensure atomic operations
+        DB::transaction(function () use ($contact, $user) {
+            // 3. Update the incoming request to accepted
+            $contact->update([
+                'status' => 'accepted',
+                'accepted_at' => now(),
+            ]);
+
+            // 4. Delete any reciprocal/duplicate records
+            Contact::where('requester_id', $user->id)
+                ->where('requested_id', $contact->requester_id)
+                ->where('id', '!=', $contact->id)
+                ->delete();
+
+            // 5. Mark the contact request notification as read
+            $user->unreadNotifications()
+                ->where('data->request_id', $contact->id)
+                ->where('data->type', 'ContactRequested')
+                ->update(['read_at' => now()]);
+        });
+
+        // Notify original requester about acceptance
+        $contact->requester->notify(new ContactAccepted($user, $contact));
+
         return $request->wantsJson()
-            ? response()->json(['message' => 'Unauthorized'], 403)
-            : back()->with('error', 'Unauthorized');
+            ? response()->json(['message' => 'Contact accepted', 'contact' => $contact])
+            : back()->with('success', 'Contact accepted.');
     }
 
-    // 2. If already accepted, return success (idempotent)
-    if ($contact->status === 'accepted') {
-        return $request->wantsJson()
-            ? response()->json(['message' => 'Contact already accepted.'], 200)
-            : back()->with('success', 'Contact already accepted.');
-    }
+    // Reject a contact request
+    public function reject(Request $request, $id)
+    {
+        $user = Auth::user();
+        $contact = Contact::findOrFail($id);
 
-    // Use a transaction to ensure atomic operations
-    DB::transaction(function () use ($contact, $user) {
-        // 3. Update the incoming request to accepted
-        $contact->update([
-            'status' => 'accepted',
-            'accepted_at' => now(),
-        ]);
+        if ($contact->requested_id !== $user->id) {
+            return $request->wantsJson()
+                ? response()->json(['message' => 'Unauthorized'], 403)
+                : back()->with('error', 'Unauthorized');
+        }
 
-        // 4. Delete any reciprocal/duplicate records
-        Contact::where('requester_id', $user->id)
-               ->where('requested_id', $contact->requester_id)
-               ->where('id', '!=', $contact->id)
-               ->delete();
-        
-        // 5. Mark the contact request notification as read
+        $contact->update(['status' => 'rejected']);
+
+        // Notify the original requester about rejection
+        $contact->requester->notify(new \App\Notifications\ContactRejected($user, $contact));
+
+        // Mark the original contact request notification as read
         $user->unreadNotifications()
             ->where('data->request_id', $contact->id)
             ->where('data->type', 'ContactRequested')
             ->update(['read_at' => now()]);
-    });
 
-    // Notify original requester about acceptance
-    $contact->requester->notify(new ContactAccepted($user, $contact));
-
-    return $request->wantsJson()
-        ? response()->json(['message' => 'Contact accepted', 'contact' => $contact])
-        : back()->with('success', 'Contact accepted.');
-}
-
-    // Reject a contact request
-    public function reject(Request $request, $id)
-{
-    $user = Auth::user();
-    $contact = Contact::findOrFail($id);
-
-    if ($contact->requested_id !== $user->id) {
         return $request->wantsJson()
-            ? response()->json(['message' => 'Unauthorized'], 403)
-            : back()->with('error', 'Unauthorized');
+            ? response()->json(['message' => 'Contact request rejected', 'contact' => $contact])
+            : back()->with('success', 'Contact request rejected.');
     }
-
-    $contact->update(['status' => 'rejected']);
-
-    // Notify the original requester about rejection
-    $contact->requester->notify(new \App\Notifications\ContactRejected($user, $contact));
-
-    // Mark the original contact request notification as read
-    $user->unreadNotifications()
-        ->where('data->request_id', $contact->id)
-        ->where('data->type', 'ContactRequested')
-        ->update(['read_at' => now()]);
-
-    return $request->wantsJson()
-        ? response()->json(['message' => 'Contact request rejected', 'contact' => $contact])
-        : back()->with('success', 'Contact request rejected.');
-}
 
     // Delete/cancel contact
     public function destroy(Request $request, $id)
